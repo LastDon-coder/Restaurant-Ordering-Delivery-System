@@ -2,8 +2,10 @@
 
 ## Setup
 
-1. Create the database: run `database/migrations/000_create_database.sql`, then `001` to `013`
-   (in order, against `restaurant_db`), then the two files in `database/seeds/`.
+1. Create the database: run `database/setup_all.sql` in one go (in MySQL Workbench: File > Open
+   SQL Script, then the lightning bolt). It is the files in `database/migrations/` and
+   `database/seeds/` joined in order. To run them one by one instead, do `000`, then `001` to
+   `013` against `restaurant_db`, then the seeds.
 2. `cd backend && npm install`
 3. `cp .env.example .env` and fill in your MySQL details, plus `ADMIN_EMAIL`, `ADMIN_PASSWORD`
    (10+ characters) and `ADMIN_PHONE`.
