@@ -128,6 +128,37 @@ Errors: `400` bad input (with an `errors` list of `{ field, message }`), `401` n
 `403` not an admin, `404` not found, `409` food appears in past orders. Deleting a food that is
 only sitting in carts works, and it is removed from those carts.
 
+## Cart (Step 11)
+
+Customers only (admin, staff and rider get `403`). Every route needs `Authorization: Bearer <token>`.
+Every response returns the **whole cart**, so the React app can just replace what it shows.
+
+| Method | Path | Body | Does |
+|---|---|---|---|
+| GET | `/api/v1/cart` | none | Show the cart (an empty cart if none yet) |
+| POST | `/api/v1/cart/items` | `{ "food_id": 1, "quantity": 2 }` | Add a food. Already in the cart: quantity goes up. `quantity` defaults to 1 |
+| PUT | `/api/v1/cart/items/:id` | `{ "quantity": 3 }` | Set the quantity to exactly this |
+| DELETE | `/api/v1/cart/items/:id` | none | Remove a line |
+
+```
+POST /api/v1/cart/items   { "food_id": 1, "quantity": 2 }
+
+201 { "success": true, "message": "Item added to cart",
+      "data": { "cart": {
+        "items": [ { "cart_item_id": 1, "food_id": 1, "food_name": "Jollof Rice & Chicken",
+                     "image_url": null, "unit_price": "3500.00", "quantity": 2,
+                     "line_total": "7000.00", "is_available": true } ],
+        "summary": { "item_count": 2, "subtotal": "7000.00", "delivery_fee": "500.00",
+                     "discount": "0.00", "total": "7500.00" } } } }
+```
+
+Rules the server enforces:
+- **The client never sends money.** Prices come from the live menu; a price, total or `user_id` in the body is ignored.
+- Totals are added up in whole kobo (`utils/money.js`), so `19.99 x 3` is exactly `59.97`.
+- Delivery fee is the flat `DELIVERY_FEE` from `.env` (default `0`), charged only when there is something to deliver. `discount` is always `"0.00"` in version 1.
+- Only foods that are available and in an active category can be added (`404` otherwise). If a food later sells out, it stays in the cart with `is_available: false` and is left out of the totals.
+- At most 50 of one food (`400`). Another customer's item id gives `404`.
+
 ## Layout
 
 | Path | Purpose |
@@ -138,11 +169,11 @@ only sitting in carts works, and it is removed from those carts.
 | `config/db.js` | Shared MySQL connection pool. Use `pool.execute(sql, [values])` |
 | `middleware/errorHandler.js` | 404 handler and the one central error handler |
 | `utils/AppError.js` | `throw new AppError(message, status)` for expected errors |
-| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js` |
-| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js` |
-| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js` |
+| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js` |
+| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js` |
+| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
-| `services/` | `emailService.js` (prints reset links for now) |
+| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |
 
 All responses use `{ success, message, data }`.

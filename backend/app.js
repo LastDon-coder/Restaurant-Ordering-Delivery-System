@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const categoryRoutes = require('./routes/categories');
 const foodRoutes = require('./routes/foods');
+const cartRoutes = require('./routes/cart');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/foods', foodRoutes);
+app.use('/api/v1/cart', cartRoutes);
 
 // Keep these two last: unmatched routes, then the central error handler.
 app.use(notFound);

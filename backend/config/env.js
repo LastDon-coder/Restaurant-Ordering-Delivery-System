@@ -19,12 +19,20 @@ if (jwtSecret.length < 32) {
   process.exit(1);
 }
 
+// Flat delivery fee added to every order, e.g. 500 or 500.00. Defaults to free delivery.
+const rawDeliveryFee = (process.env.DELIVERY_FEE || '0').trim();
+if (!/^\d{1,6}(\.\d{1,2})?$/.test(rawDeliveryFee)) {
+  console.error('DELIVERY_FEE must be an amount such as 500 or 500.00');
+  process.exit(1);
+}
+
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT) || 5000,
   corsOrigin,
+  deliveryFee: Number(rawDeliveryFee).toFixed(2), // string with 2 decimals, e.g. "500.00"
   // Where the React app lives; used to build the password reset link.
   frontendUrl: process.env.FRONTEND_URL || corsOrigin,
   jwt: {

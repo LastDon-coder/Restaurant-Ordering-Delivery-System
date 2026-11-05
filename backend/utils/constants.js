@@ -6,4 +6,7 @@ const ROLES = {
   RIDER: 'rider',
 };
 
-module.exports = { ROLES };
+// Most of one food a customer can put in the cart (and later order) at once.
+const CART_MAX_QUANTITY = 50;
+
+module.exports = { ROLES, CART_MAX_QUANTITY };
