@@ -12,6 +12,9 @@
    it). Generate one with:
    `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 4. `npm run seed:admin` creates the first admin account (safe to run twice).
+   Development only, optional: set `TEST_USER_PASSWORD` in `.env`, then `npm run seed:test-users`
+   creates `customer@example.com`, `staff@example.com` and `rider@example.com` with that password
+   (safe to run twice; refuses to run when `NODE_ENV=production`).
 5. `npm run dev` starts the API with auto-restart, or `npm start` for plain Node.
 
 ## Check it works
