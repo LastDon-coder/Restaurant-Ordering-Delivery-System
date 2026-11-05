@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Categories: list all incl. inactive (admin)'
+order: 11000
+method: GET
+url: '{{baseUrl}}/api/v1/categories?status=all'
+headers:
+  - key: Content-Type
+    value: application/json
+queryParams:
+  - key: status
+    value: all
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'

@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'Admin: create rider'
+order: 8000
+method: POST
+url: '{{baseUrl}}/api/v1/users'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Emeka",
+      "last_name": "Rider",
+      "email": "rider@example.com",
+      "phone": "08098765432",
+      "password": "RiderPass123",
+      "role": "rider"
+    }

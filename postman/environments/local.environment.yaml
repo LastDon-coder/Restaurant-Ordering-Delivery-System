@@ -1,0 +1,14 @@
+name: Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5000'
+    enabled: true
+  - key: token
+    value: ''
+    enabled: true
+  - key: adminToken
+    value: ''
+    enabled: true
+  - key: categoryId
+    value: '1'
+    enabled: true

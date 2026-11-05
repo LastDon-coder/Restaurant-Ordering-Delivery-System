@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'Categories: update (admin)'
+order: 14000
+method: PUT
+url: '{{baseUrl}}/api/v1/categories/{{categoryId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+body:
+  type: json
+  content: |-
+    {
+      "description": "Sweet treats",
+      "status": "active"
+    }

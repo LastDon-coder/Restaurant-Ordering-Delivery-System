@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Categories: get one'
+order: 12000
+method: GET
+url: '{{baseUrl}}/api/v1/categories/{{categoryId}}'
+headers:
+  - key: Content-Type
+    value: application/json

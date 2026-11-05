@@ -1,0 +1,8 @@
+$kind: http-request
+name: Health check
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/health'
+headers:
+  - key: Content-Type
+    value: application/json
