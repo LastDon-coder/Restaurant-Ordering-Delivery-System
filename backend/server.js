@@ -7,7 +7,7 @@ async function start() {
     await pool.query('SELECT 1');
     console.log('Database connected');
   } catch (err) {
-    console.error('Database connection failed:', err.code || err.message);
+    console.error('Database connection failed:', [err.code, err.message].filter(Boolean).join(' - '));
     process.exit(1);
   }
 
