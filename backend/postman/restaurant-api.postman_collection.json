@@ -15,6 +15,10 @@
     {
       "key": "adminToken",
       "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": "1"
     }
   ],
   "item": [
@@ -51,12 +55,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/register",
+          "raw": "{{baseUrl}}/api/v1/auth/register",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "register"
           ]
@@ -107,12 +112,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/login",
+          "raw": "{{baseUrl}}/api/v1/auth/login",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "login"
           ]
@@ -163,12 +169,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/me",
+          "raw": "{{baseUrl}}/api/v1/auth/me",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "me"
           ]
@@ -196,12 +203,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/forgot-password",
+          "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "forgot-password"
           ]
@@ -228,12 +236,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/reset-password",
+          "raw": "{{baseUrl}}/api/v1/auth/reset-password",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "reset-password"
           ]
@@ -260,12 +269,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/auth/login",
+          "raw": "{{baseUrl}}/api/v1/auth/login",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "auth",
             "login"
           ]
@@ -316,12 +326,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/users",
+          "raw": "{{baseUrl}}/api/v1/users",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "users"
           ]
         },
@@ -357,12 +368,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/users",
+          "raw": "{{baseUrl}}/api/v1/users",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
+            "v1",
             "users"
           ]
         },
@@ -384,6 +396,235 @@
               "language": "json"
             }
           }
+        }
+      }
+    },
+    {
+      "name": "Categories: list (public)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Categories: list all incl. inactive (admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories?status=all",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "all"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Categories: get one",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories",
+            "{{categoryId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Categories: create (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"category_name\": \"Desserts\",\n  \"description\": \"Cakes and ice cream\",\n  \"image_url\": \"https://example.com/desserts.jpg\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.data && body.data.category) { pm.collectionVariables.set(\"categoryId\", body.data.category.category_id); }"
+              ]
+            }
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.data && body.data.category) { pm.collectionVariables.set(\"categoryId\", body.data.category.category_id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories: update (admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories",
+            "{{categoryId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Sweet treats\",\n  \"status\": \"active\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Categories: delete (admin)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "categories",
+            "{{categoryId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
         }
       }
     }

@@ -28,6 +28,14 @@ async function authenticate(req, res, next) {
   next();
 }
 
+// For public routes whose answer differs for logged-in users (e.g. an admin sees inactive
+// categories). No token: carry on as a visitor. A token that is present must be valid,
+// otherwise 401, so an expired login is noticed instead of silently treated as a visitor.
+async function optionalAuthenticate(req, res, next) {
+  if (!req.headers.authorization) return next();
+  return authenticate(req, res, next);
+}
+
 // Authorization: "are you allowed?" Use after authenticate:
 //   router.post('/', authenticate, authorize('admin'), handler)
 function authorize(...allowedRoles) {
@@ -40,4 +48,4 @@ function authorize(...allowedRoles) {
   };
 }
 
-module.exports = { authenticate, authorize };
+module.exports = { authenticate, optionalAuthenticate, authorize };

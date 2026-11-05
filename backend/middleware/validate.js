@@ -18,4 +18,13 @@ function validate(schema) {
   };
 }
 
+// Checks that the :id in the URL is a positive whole number before it reaches the database.
+function validateId(req, res, next) {
+  if (!/^[1-9]\d{0,9}$/.test(req.params.id)) {
+    throw new AppError('Invalid id', 400);
+  }
+  next();
+}
+
 module.exports = validate;
+module.exports.validateId = validateId;

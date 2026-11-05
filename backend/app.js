@@ -5,6 +5,7 @@ const { corsOrigin } = require('./config/env');
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const categoryRoutes = require('./routes/categories');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -14,8 +15,11 @@ app.use(cors({ origin: corsOrigin })); // only the React app's origin may call t
 app.use(express.json({ limit: '10kb' })); // parse JSON bodies, reject oversized ones
 
 app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+// Resource routes are versioned (/api/v1/...) as in the project guide.
+// /api/health stays unversioned: it is for monitoring, not part of the API contract.
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/categories', categoryRoutes);
 
 // Keep these two last: unmatched routes, then the central error handler.
 app.use(notFound);
