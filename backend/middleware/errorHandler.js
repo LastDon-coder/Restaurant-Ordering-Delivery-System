@@ -30,7 +30,9 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
     if (!err.isOperational) message = 'Internal server error';
   }
 
-  res.status(status).json({ success: false, message });
+  const body = { success: false, message };
+  if (err.errors) body.errors = err.errors; // per-field details, e.g. for form validation
+  res.status(status).json(body);
 }
 
 module.exports = { notFound, errorHandler };
