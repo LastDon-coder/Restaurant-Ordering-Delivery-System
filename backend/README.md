@@ -84,6 +84,50 @@ POST /api/v1/categories        (Authorization: Bearer <admin token>)
 Errors: `400` bad input (with an `errors` list of `{ field, message }`), `401` not logged in,
 `403` not an admin, `404` not found, `409` duplicate name or category still in use.
 
+## Food items
+
+| Method | Path | Who | What it does |
+|---|---|---|---|
+| GET | `/api/v1/foods` | Anyone | The menu: foods that are on sale, in active categories. Supports search, filters, sorting, paging |
+| GET | `/api/v1/foods/:id` | Anyone | One food. Sold-out foods and foods in inactive categories look like 404 to everyone except an admin |
+| POST | `/api/v1/foods` | **Admin** | Creates a food item |
+| PUT | `/api/v1/foods/:id` | **Admin** | Updates the fields you send (at least one) |
+| DELETE | `/api/v1/foods/:id` | **Admin** | Deletes a food that was never ordered. Otherwise `409`: set `is_available` to `false` instead |
+
+Query string for `GET /api/v1/foods` (all optional):
+
+| Parameter | Meaning |
+|---|---|
+| `q` | Search text, matched against name and description, ignoring case (max 100 characters) |
+| `category_id` | Only foods in this category |
+| `sort` | `name` (default), `price_asc`, `price_desc`, `newest` |
+| `page`, `limit` | Paging. Defaults 1 and 20; `limit` is at most 100 |
+| `available` | `true` (default). Admin only: `false` (sold out only) or `all` |
+
+Fields: `category_id` (required, must exist), `food_name` (required, up to 150 characters),
+`price` (required, greater than 0, at most 2 decimal places; send `1200.5` or `"1200.50"`),
+`description` (up to 1000), `image_url` (`http://` or `https://` address; file upload comes later),
+`is_available` (`true` or `false`, default `true`).
+
+**Prices are strings** such as `"3500.00"`: money is stored as an exact decimal, and a JavaScript
+number can drift (0.1 + 0.2). Show it as it is; the server does all money maths.
+
+```
+GET /api/v1/foods?q=rice&sort=price_asc&page=1&limit=10
+
+200 { "success": true, "message": "Foods retrieved",
+      "data": { "foods": [ { "food_id": 2, "category_id": 1, "category_name": "Rice Dishes",
+                             "category_status": "active", "food_name": "Fried Rice & Plantain",
+                             "description": "Vegetable fried rice with dodo", "price": "3200.00",
+                             "image_url": null, "is_available": true,
+                             "created_at": "...", "updated_at": "..." } ],
+                "pagination": { "page": 1, "limit": 10, "total": 2, "total_pages": 1 } } }
+```
+
+Errors: `400` bad input (with an `errors` list of `{ field, message }`), `401` not logged in,
+`403` not an admin, `404` not found, `409` food appears in past orders. Deleting a food that is
+only sitting in carts works, and it is removed from those carts.
+
 ## Layout
 
 | Path | Purpose |
@@ -94,9 +138,9 @@ Errors: `400` bad input (with an `errors` list of `{ field, message }`), `401` n
 | `config/db.js` | Shared MySQL connection pool. Use `pool.execute(sql, [values])` |
 | `middleware/errorHandler.js` | 404 handler and the one central error handler |
 | `utils/AppError.js` | `throw new AppError(message, status)` for expected errors |
-| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js` |
-| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js` |
-| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js` |
+| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js` |
+| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js` |
+| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
 | `services/` | `emailService.js` (prints reset links for now) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |

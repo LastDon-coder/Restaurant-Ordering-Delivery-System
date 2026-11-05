@@ -18,6 +18,23 @@ function validate(schema) {
   };
 }
 
+// Same idea for the query string (?page=2&q=rice). The cleaned values are put on
+// req.validatedQuery (Express 5 doesn't allow overwriting req.query itself).
+function validateQuery(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      throw new AppError('Validation failed', 400, errors);
+    }
+    req.validatedQuery = result.data;
+    next();
+  };
+}
+
 // Checks that the :id in the URL is a positive whole number before it reaches the database.
 function validateId(req, res, next) {
   if (!/^[1-9]\d{0,9}$/.test(req.params.id)) {
@@ -28,3 +45,4 @@ function validateId(req, res, next) {
 
 module.exports = validate;
 module.exports.validateId = validateId;
+module.exports.validateQuery = validateQuery;
