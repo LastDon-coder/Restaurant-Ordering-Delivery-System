@@ -9,4 +9,20 @@ const ROLES = {
 // Most of one food a customer can put in the cart (and later order) at once.
 const CART_MAX_QUANTITY = 50;
 
-module.exports = { ROLES, CART_MAX_QUANTITY };
+// Order lifecycle (same values as the orders.order_status ENUM).
+const ORDER_STATUSES = [
+  'pending',
+  'confirmed',
+  'preparing',
+  'ready_for_delivery',
+  'out_for_delivery',
+  'delivered',
+  'cancelled',
+  'rejected',
+  'failed',
+];
+
+// Ways to pay that customers may choose. (bank_transfer exists in the table but is not offered in V1.)
+const PAYMENT_METHODS = ['online', 'cash_on_delivery'];
+
+module.exports = { ROLES, CART_MAX_QUANTITY, ORDER_STATUSES, PAYMENT_METHODS };

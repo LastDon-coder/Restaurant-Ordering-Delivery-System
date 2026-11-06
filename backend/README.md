@@ -159,6 +159,43 @@ Rules the server enforces:
 - Only foods that are available and in an active category can be added (`404` otherwise). If a food later sells out, it stays in the cart with `is_available: false` and is left out of the totals.
 - At most 50 of one food (`400`). Another customer's item id gives `404`.
 
+## Orders (Step 12)
+
+Place an order from the cart, then read orders back. Order status changes (confirm, cancel, ...) come in Step 13 and payment verification in Step 14, so every order is `pending` for now.
+
+| Method | Path | Who | Does |
+|---|---|---|---|
+| POST | `/api/v1/orders` | customer | Turn the cart into an order |
+| GET | `/api/v1/orders?status=&page=&limit=` | customer (own), admin, staff (all) | List orders, newest first |
+| GET | `/api/v1/orders/:id` | customer (own), admin, staff | One order with items and payment |
+
+Riders get order access in Step 15, once deliveries exist.
+
+```
+POST /api/v1/orders
+{ "delivery_address": { "street_address": "12 Aba Road", "city": "Port Harcourt",
+                        "state": "Rivers", "landmark": "Near the roundabout" },
+  "payment_method": "cash_on_delivery" }          // or "online"
+
+201 { "success": true, "message": "Order placed",
+      "data": { "order": { "order_id": 1, "order_status": "pending",
+        "subtotal": "7300.00", "delivery_fee": "500.00", "discount": "0.00", "total_amount": "7800.00",
+        "delivery_address": { ... }, "customer": { ... },
+        "payment": { "payment_method": "cash_on_delivery", "payment_status": "pending",
+                     "amount": "7800.00", "paid_at": null },
+        "items": [ { "food_id": 1, "food_name": "Jollof Rice & Chicken", "quantity": 2,
+                     "unit_price": "3500.00", "line_total": "7000.00" } ] } } }
+```
+
+How it is kept safe:
+- **One transaction** saves the address, order, items, payment and empties the cart. If any step fails, nothing is saved.
+- **The server reads the cart**, so the body only says where and how to pay. Prices, fees, totals and status in the body are ignored.
+- **Snapshot:** item names and prices are copied into `order_items`; later menu changes never alter old orders.
+- **Double-click safe:** the cart row is locked, so a second simultaneous submit finds an empty cart (`400`).
+- A sold-out food (or one in an inactive category) in the cart gives `400` listing it; nothing is created.
+- The typed address is saved as an `addresses` row (the table requires one) and copied onto the order.
+- Someone else's order id gives `404`. `payment_status` stays `pending` until Step 14 (online) or delivery (cash).
+
 ## Layout
 
 | Path | Purpose |
@@ -169,11 +206,11 @@ Rules the server enforces:
 | `config/db.js` | Shared MySQL connection pool. Use `pool.execute(sql, [values])` |
 | `middleware/errorHandler.js` | 404 handler and the one central error handler |
 | `utils/AppError.js` | `throw new AppError(message, status)` for expected errors |
-| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js` |
-| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js` |
-| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js` |
+| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js`, `orders.js` |
+| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js` |
+| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
-| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals) |
+| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (cart to order transaction) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |
 
 All responses use `{ success, message, data }`.
