@@ -196,6 +196,35 @@ How it is kept safe:
 - The typed address is saved as an `addresses` row (the table requires one) and copied onto the order.
 - Someone else's order id gives `404`. `payment_status` stays `pending` until Step 14 (online) or delivery (cash).
 
+## Order status workflow (Step 13)
+
+**Run the new migration first** (a new table): in MySQL Workbench open `database/migrations/014_create_order_status_history.sql` and run it. (A fresh `setup_all.sql` already includes it.)
+
+`PATCH /api/v1/orders/:id/status` with `{ "status": "confirmed", "reason": "optional text" }`.
+Staff and admin can make any allowed move; a customer can only cancel their own order while it is `pending`. Riders get the two delivery moves in Step 15.
+
+```
+pending --> confirmed --> preparing --> ready_for_delivery --> out_for_delivery --> delivered
+   |  \__> rejected          |                 |                    \__> failed
+   |                          \_________________\__> cancelled (also from confirmed)
+   \__> cancelled
+```
+
+| From | Can move to |
+|---|---|
+| pending | confirmed, rejected, cancelled |
+| confirmed | preparing, cancelled |
+| preparing | ready_for_delivery, cancelled |
+| ready_for_delivery | out_for_delivery, cancelled |
+| out_for_delivery | delivered, failed |
+| delivered, cancelled, rejected, failed | nothing (final) |
+
+- **Reason required** (`400` without one) for `rejected`, `cancelled` and `failed`, except when a customer cancels their own order.
+- Invalid move (skipping, going back, leaving a final status): `409` listing the allowed next statuses. Not allowed for your role: `403`. Someone else's order: `404`.
+- An **online-payment order cannot be confirmed until it is paid** (`409`); payment verification arrives in Step 14.
+- Every change is saved with its history line in one transaction, and the order row is locked, so two people acting at once can't both win. `GET /orders/:id` now includes `status_history` (from, to, reason, time) so customers can see what happened and why.
+- The rules live in `utils/orderWorkflow.js`.
+
 ## Layout
 
 | Path | Purpose |
@@ -210,7 +239,7 @@ How it is kept safe:
 | `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js` |
 | `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
-| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (cart to order transaction) |
+| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (place order, change status), `utils/orderWorkflow.js` (status rules) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |
 
 All responses use `{ success, message, data }`.

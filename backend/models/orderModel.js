@@ -13,7 +13,7 @@ const ORDER_SELECT = `
   JOIN users u ON u.user_id = o.user_id
   LEFT JOIN payments p ON p.order_id = o.order_id`;
 
-function toOrder(row, items) {
+function toOrder(row, items, history) {
   return {
     order_id: row.order_id,
     order_status: row.order_status,
@@ -35,6 +35,7 @@ function toOrder(row, items) {
       paid_at: row.paid_at,
     },
     items,
+    status_history: history,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -50,7 +51,13 @@ async function findById(orderId) {
      FROM order_items WHERE order_id = ? ORDER BY order_item_id`,
     [orderId]
   );
-  return toOrder(rows[0], items);
+  // The story of the order, oldest first. Who made each change is deliberately not shown here.
+  const [history] = await pool.execute(
+    `SELECT from_status, to_status, reason, created_at
+     FROM order_status_history WHERE order_id = ? ORDER BY history_id`,
+    [orderId]
+  );
+  return toOrder(rows[0], items, history);
 }
 
 // A page of orders, newest first. userId limits it to one customer's orders.

@@ -32,4 +32,16 @@ const listOrdersQuerySchema = z.object({
   limit: z.preprocess(blankToUndefined, z.coerce.number().int().min(1).max(100).default(20)),
 });
 
-module.exports = { placeOrderSchema, listOrdersQuerySchema };
+// PATCH /orders/:id/status. A reason is optional here; the controller makes it required
+// where the rules say so (rejecting, cancelling or failing, unless the customer cancels).
+const updateStatusSchema = z.object({
+  status: z.enum(ORDER_STATUSES, { error: `Status must be one of: ${ORDER_STATUSES.join(', ')}` }),
+  reason: z
+    .string({ error: 'Reason must be text' })
+    .trim()
+    .max(255, 'Reason must be at most 255 characters')
+    .transform((v) => (v === '' ? undefined : v))
+    .optional(),
+});
+
+module.exports = { placeOrderSchema, listOrdersQuerySchema, updateStatusSchema };

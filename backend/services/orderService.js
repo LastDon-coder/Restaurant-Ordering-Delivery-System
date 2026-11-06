@@ -1,6 +1,8 @@
 const pool = require('../config/db');
 const AppError = require('../utils/AppError');
 const { buildCart } = require('./cartService');
+const { ROLES } = require('../utils/constants');
+const { TRANSITIONS, canPerform, needsReason } = require('../utils/orderWorkflow');
 
 // Turns the customer's cart into an order. Everything happens in ONE transaction:
 // either the address, order, order items, payment AND the emptied cart are all saved, or none are.
@@ -68,6 +70,12 @@ async function placeOrder(userId, { delivery_address: addr, payment_method }) {
     // verified with the payment provider in Step 14, cash is collected on delivery.
     await conn.execute('INSERT INTO payments (order_id, payment_method, amount) VALUES (?, ?, ?)', [orderId, payment_method, total]);
 
+    // First line of the order's history: placed by the customer, starting as pending.
+    await conn.execute(
+      "INSERT INTO order_status_history (order_id, from_status, to_status, changed_by) VALUES (?, NULL, 'pending', ?)",
+      [orderId, userId]
+    );
+
     await conn.execute('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
 
     await conn.commit();
@@ -80,4 +88,56 @@ async function placeOrder(userId, { delivery_address: addr, payment_method }) {
   }
 }
 
-module.exports = { placeOrder };
+// Moves an order to a new status, checking the rules. Also in one transaction: the status change and its
+// history line are saved together or not at all.
+async function changeStatus({ orderId, user, newStatus, reason }) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Lock the order row. Two people pressing buttons at once (say staff confirm while the customer
+    // cancels) are handled one after the other, and the second one is judged on the NEW status.
+    const [rows] = await conn.execute(
+      `SELECT o.order_id, o.user_id, o.order_status, p.payment_method, p.payment_status
+       FROM orders o LEFT JOIN payments p ON p.order_id = o.order_id
+       WHERE o.order_id = ? FOR UPDATE`,
+      [orderId]
+    );
+    const order = rows[0];
+    // Someone else's order looks exactly like a missing one.
+    if (!order || (user.role === ROLES.CUSTOMER && order.user_id !== user.user_id)) {
+      throw new AppError('Order not found', 404);
+    }
+
+    const from = order.order_status;
+    if (!TRANSITIONS[from].includes(newStatus)) {
+      const next = TRANSITIONS[from].length ? TRANSITIONS[from].join(', ') : 'none (this order is final)';
+      throw new AppError(`Cannot change an order from ${from} to ${newStatus}. Allowed next: ${next}`, 409);
+    }
+    if (!canPerform(user.role, from, newStatus)) {
+      throw new AppError('You are not allowed to make this status change', 403);
+    }
+    if (needsReason(user.role, newStatus) && !reason) {
+      throw new AppError('Validation failed', 400, [{ field: 'reason', message: `A reason is required when the status is ${newStatus}` }]);
+    }
+    // An online order must be PAID (verified by the server in Step 14) before the kitchen starts on it.
+    if (newStatus === 'confirmed' && order.payment_method === 'online' && order.payment_status !== 'paid') {
+      throw new AppError('This is an online-payment order and it has not been paid yet', 409);
+    }
+
+    await conn.execute('UPDATE orders SET order_status = ? WHERE order_id = ?', [newStatus, orderId]);
+    await conn.execute(
+      'INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, reason) VALUES (?, ?, ?, ?, ?)',
+      [orderId, from, newStatus, user.user_id, reason ?? null]
+    );
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+module.exports = { placeOrder, changeStatus };

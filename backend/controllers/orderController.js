@@ -2,7 +2,7 @@ const AppError = require('../utils/AppError');
 const { sendSuccess } = require('../utils/response');
 const { ROLES } = require('../utils/constants');
 const orderModel = require('../models/orderModel');
-const { placeOrder } = require('../services/orderService');
+const { placeOrder, changeStatus } = require('../services/orderService');
 
 // POST /api/v1/orders   (customer)
 async function createOrder(req, res) {
@@ -32,4 +32,13 @@ async function getOrder(req, res) {
   sendSuccess(res, 200, 'Order retrieved', { order });
 }
 
-module.exports = { createOrder, listOrders, getOrder };
+// PATCH /api/v1/orders/:id/status   { status, reason? }
+// The rules (allowed moves, who may make them, reasons) live in utils/orderWorkflow.js and the service.
+async function updateStatus(req, res) {
+  const orderId = Number(req.params.id);
+  await changeStatus({ orderId, user: req.user, newStatus: req.body.status, reason: req.body.reason });
+  const order = await orderModel.findById(orderId);
+  sendSuccess(res, 200, `Order is now ${order.order_status}`, { order });
+}
+
+module.exports = { createOrder, listOrders, getOrder, updateStatus };
