@@ -33,6 +33,11 @@ function toOrder(row, items, history) {
       payment_status: row.payment_status,
       amount: row.payment_amount,
       paid_at: row.paid_at,
+      // True when money was taken online for an order that is now cancelled/rejected/failed: an admin should refund it.
+      refund_due:
+        row.payment_method === 'online' &&
+        row.payment_status === 'paid' &&
+        ['cancelled', 'rejected', 'failed'].includes(row.order_status),
     },
     items,
     status_history: history,

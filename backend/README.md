@@ -262,7 +262,23 @@ How it is kept safe:
 - Paystack down or slow: `502`, nothing changes, 10 second timeout, no internals leaked.
 - Cash on delivery: the payment becomes `paid` when staff mark the order `delivered`.
 
-**Things that need a human (logged as `DUPLICATE PAYMENT` or "was paid" in the server log):** a customer who pays twice, or pays an order that was cancelled in the meantime. Refund these in the Paystack dashboard for now; an automated admin refund endpoint is a good next addition.
+## Refunds (before Step 15)
+
+**Run the new migration first:** in MySQL Workbench open `database/migrations/015_create_payment_refunds.sql` and run it (a fresh `setup_all.sql` already includes it).
+
+Admin only, always a **full** refund, back to the customer's original card or bank through Paystack.
+
+| Method | Path | Does |
+|---|---|---|
+| POST | `/api/v1/payments/:orderId/refund` | `{ "reason": "Order cancelled by customer" }` asks Paystack to refund the order's payment |
+| GET | `/api/v1/payments/:orderId/refunds` | Refund records for the order |
+
+- **Normal case:** the order must already be `cancelled`, `rejected` or `failed` (`409` otherwise), and its online payment `paid`. `GET /orders/:id` shows `payment.refund_due: true` for exactly these orders, so a dashboard can list them.
+- **Duplicate payment** (customer paid twice, logged as `DUPLICATE PAYMENT`): add `"reference": "ORD-..."` from the server log. Paystack is asked to confirm that payment really succeeded first.
+- **Not instant.** Paystack queues the refund (`refund_status: pending`) and confirms by webhook. On `refund.processed` the payment becomes `refunded`; on `refund.failed` the refund is marked `failed` and can be requested again. Enable the refund events for your webhook URL in the Paystack dashboard. If a refund stays `pending` for long, check the dashboard.
+- **Safe to click twice:** the refund is reserved in the database (one per payment reference, payment row locked) before Paystack is called, so it can only be sent once. If Paystack is silent, the refund stays `pending` instead of being retried blindly.
+- Paystack says no (for example not enough balance): `502` with its message, the refund is marked `failed`, retry after fixing it.
+- Cash on delivery has nothing to refund through Paystack (`400`).
 
 ## Layout
 
@@ -275,10 +291,10 @@ How it is kept safe:
 | `middleware/errorHandler.js` | 404 handler and the one central error handler |
 | `utils/AppError.js` | `throw new AppError(message, status)` for expected errors |
 | `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js`, `orders.js`, `payments.js`, `paymentWebhook.js` |
-| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js`, `paymentController.js` |
-| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js`, `paymentModel.js` |
+| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js`, `paymentController.js` (also refunds) |
+| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js`, `paymentModel.js`, `refundModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
-| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (place order, change status), `paymentService.js` and `paystackService.js` (payments), `utils/orderWorkflow.js` (status rules) |
+| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (place order, change status), `paymentService.js`, `refundService.js` and `paystackService.js` (payments), `utils/orderWorkflow.js` (status rules) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |
 
 All responses use `{ success, message, data }`.

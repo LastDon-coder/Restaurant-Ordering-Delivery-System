@@ -6,10 +6,9 @@ const { toMinor } = require('../utils/money');
 const { paystack } = require('../config/env');
 const paystackService = require('./paystackService');
 const paymentModel = require('../models/paymentModel');
+const { REFERENCE_RE } = require('../utils/paymentRefs');
+const { handleRefundEvent } = require('./refundService');
 
-// A reference looks like ORD-12-9f86d081884c7d65: the order id is part of it, so even if a customer pays an
-// older attempt, we still know which order the money is for.
-const REFERENCE_RE = /^ORD-(\d{1,10})-[a-f0-9]{16}$/;
 const CURRENCY = 'NGN';
 const CLOSED_ORDER = ['cancelled', 'rejected', 'failed'];
 
@@ -86,6 +85,7 @@ async function initializePayment(user, orderId) {
   if (!payment || payment.user_id !== user.user_id) throw new AppError('Order not found', 404);
   if (payment.payment_method !== 'online') throw new AppError('This order is not set to online payment', 400);
   if (payment.payment_status === 'paid') throw new AppError('This order has already been paid', 409);
+  if (payment.payment_status === 'refunded') throw new AppError('This payment was refunded, so it cannot be paid again', 409);
   if (payment.order_status !== 'pending') {
     throw new AppError(`This order is ${payment.order_status}, so it can no longer be paid`, 409);
   }
@@ -143,10 +143,11 @@ async function verifyPayment(user, reference) {
 
 // POST /payments/webhook: Paystack tells us, server to server. Returns a short string describing what happened.
 async function handleWebhookEvent(event) {
+  if (event && typeof event.event === 'string' && event.event.startsWith('refund.')) return handleRefundEvent(event);
   if (!event || event.event !== 'charge.success' || !event.data) return 'ignored';
   const d = event.data;
   if (typeof d.reference !== 'string') return 'ignored';
   return applyPaystackResult({ reference: d.reference, status: d.status, amount: Number(d.amount), currency: d.currency });
 }
 
-module.exports = { initializePayment, verifyPayment, handleWebhookEvent, REFERENCE_RE };
+module.exports = { initializePayment, verifyPayment, handleWebhookEvent };

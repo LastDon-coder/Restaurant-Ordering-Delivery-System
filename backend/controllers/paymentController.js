@@ -2,6 +2,7 @@ const AppError = require('../utils/AppError');
 const { sendSuccess } = require('../utils/response');
 const paystackService = require('../services/paystackService');
 const paymentService = require('../services/paymentService');
+const refundService = require('../services/refundService');
 
 // POST /api/v1/payments/initialize   { order_id }   (customer)
 async function initialize(req, res) {
@@ -13,6 +14,18 @@ async function initialize(req, res) {
 async function verify(req, res) {
   const payment = await paymentService.verifyPayment(req.user, req.params.reference);
   sendSuccess(res, 200, 'Payment status retrieved', { payment });
+}
+
+// POST /api/v1/payments/:id/refund   { reason, reference? }   (admin)
+async function refund(req, res) {
+  const result = await refundService.refundPayment(req.user, Number(req.params.id), req.body);
+  sendSuccess(res, 200, 'Refund requested. It completes when Paystack confirms it', { refund: result });
+}
+
+// GET /api/v1/payments/:id/refunds   (admin)
+async function listRefunds(req, res) {
+  const refunds = await refundService.listRefunds(Number(req.params.id));
+  sendSuccess(res, 200, 'Refunds retrieved', { refunds });
 }
 
 // POST /api/v1/payments/webhook   (Paystack only; no login, the signature is the proof)
@@ -33,4 +46,4 @@ async function webhook(req, res) {
   sendSuccess(res, 200, `Webhook processed: ${outcome}`);
 }
 
-module.exports = { initialize, verify, webhook };
+module.exports = { initialize, verify, refund, listRefunds, webhook };

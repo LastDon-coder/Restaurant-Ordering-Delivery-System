@@ -27,7 +27,9 @@ async function request(method, path, body) {
     return { status: res.status, json };
   } catch (err) {
     console.error('Paystack request failed:', err.name, err.message); // never log the key or headers
-    throw new AppError('The payment provider is unavailable. Please try again shortly.', 502);
+    const unavailable = new AppError('The payment provider is unavailable. Please try again shortly.', 502);
+    unavailable.unknownOutcome = true; // we don't know whether Paystack received it (matters for refunds)
+    throw unavailable;
   }
 }
 
@@ -60,6 +62,20 @@ async function verifyTransaction(reference) {
   return json.data;
 }
 
+// Asks Paystack to refund a whole transaction (no amount = everything). The refund is QUEUED: Paystack tells us
+// when it is processed or failed by webhook. Throws with err.rejected = true if Paystack clearly said no
+// (e.g. not enough balance); throws with err.unknownOutcome = true if we never got an answer.
+async function createRefund({ reference, note }) {
+  const { status, json } = await request('POST', '/refund', { transaction: reference, merchant_note: note });
+  if (status < 200 || status >= 300 || !json || json.status !== true) {
+    console.error('Paystack rejected refund:', status, json && json.message);
+    const err = new AppError(`Paystack could not process the refund: ${(json && json.message) || `HTTP ${status}`}`, 502);
+    err.rejected = true;
+    throw err;
+  }
+  return json.data || {};
+}
+
 // Webhook check: Paystack signs the RAW request body with HMAC-SHA512 using our secret key and sends it in
 // the x-paystack-signature header. Anyone can POST to our URL, so without this, anyone could fake "paid".
 function verifyWebhookSignature(rawBody, signature) {
@@ -69,4 +85,4 @@ function verifyWebhookSignature(rawBody, signature) {
   return given.length === expected.length && crypto.timingSafeEqual(given, expected); // constant-time compare
 }
 
-module.exports = { initializeTransaction, verifyTransaction, verifyWebhookSignature };
+module.exports = { initializeTransaction, verifyTransaction, createRefund, verifyWebhookSignature };
