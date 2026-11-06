@@ -126,6 +126,10 @@ async function changeStatus({ orderId, user, newStatus, reason }) {
     }
 
     await conn.execute('UPDATE orders SET order_status = ? WHERE order_id = ?', [newStatus, orderId]);
+    // Cash is handed over at the door, so a delivered cash-on-delivery order counts as paid.
+    if (newStatus === 'delivered' && order.payment_method === 'cash_on_delivery' && order.payment_status === 'pending') {
+      await conn.execute("UPDATE payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?", [orderId]);
+    }
     await conn.execute(
       'INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, reason) VALUES (?, ?, ?, ?, ?)',
       [orderId, from, newStatus, user.user_id, reason ?? null]

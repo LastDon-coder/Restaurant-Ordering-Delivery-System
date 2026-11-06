@@ -27,14 +27,42 @@ if (!/^\d{1,6}(\.\d{1,2})?$/.test(rawDeliveryFee)) {
 }
 
 const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const frontendUrl = process.env.FRONTEND_URL || corsOrigin;
+
+// Paystack secret key (sk_test_... while testing, sk_live_... in production). It lives only here on the
+// server: never in the frontend, never in git. Without it the app still runs, but online payments answer 503.
+const paystackSecretKey = (process.env.PAYSTACK_SECRET_KEY || '').trim();
+if (paystackSecretKey && !/^sk_(test|live)_\S+$/.test(paystackSecretKey)) {
+  console.error('PAYSTACK_SECRET_KEY must be a Paystack SECRET key (starts with sk_test_ or sk_live_), not the public key.');
+  process.exit(1);
+}
+if (nodeEnv === 'production') {
+  if (!paystackSecretKey) {
+    console.error('PAYSTACK_SECRET_KEY is required when NODE_ENV=production.');
+    process.exit(1);
+  }
+  if (paystackSecretKey.startsWith('sk_test_')) {
+    console.warn('WARNING: production is running with a Paystack TEST key. No real money will move.');
+  }
+} else if (paystackSecretKey.startsWith('sk_live_')) {
+  console.warn('WARNING: a LIVE Paystack key is set outside production. Real cards will be charged.');
+}
 
 module.exports = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   port: Number(process.env.PORT) || 5000,
   corsOrigin,
   deliveryFee: Number(rawDeliveryFee).toFixed(2), // string with 2 decimals, e.g. "500.00"
   // Where the React app lives; used to build the password reset link.
-  frontendUrl: process.env.FRONTEND_URL || corsOrigin,
+  frontendUrl,
+  paystack: {
+    secretKey: paystackSecretKey,
+    // Overridable so tests can point at a fake Paystack. Leave unset to use the real one.
+    baseUrl: (process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co').replace(/\/+$/, ''),
+    // Where Paystack sends the customer's browser after paying (the React app adds ?reference=...).
+    callbackUrl: process.env.PAYSTACK_CALLBACK_URL || `${frontendUrl}/payment/callback`,
+  },
   jwt: {
     secret: jwtSecret,
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',

@@ -17,4 +17,7 @@ const loginLimiter = rateLimit({ ...common, limit: 10, skipSuccessfulRequests: t
 // Register, forgot-password, reset-password.
 const authLimiter = rateLimit({ ...common, limit: 20 });
 
-module.exports = { loginLimiter, authLimiter };
+// Payment start/verify call Paystack on every request, so cap them per IP (120 a minute is far more than a real customer needs).
+const paymentLimiter = rateLimit({ ...common, windowMs: 60 * 1000, limit: 120 });
+
+module.exports = { loginLimiter, authLimiter, paymentLimiter };

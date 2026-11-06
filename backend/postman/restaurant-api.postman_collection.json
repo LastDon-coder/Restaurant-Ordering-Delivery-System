@@ -31,6 +31,10 @@
     {
       "key": "orderId",
       "value": "1"
+    },
+    {
+      "key": "paymentReference",
+      "value": ""
     }
   ],
   "item": [
@@ -1413,6 +1417,96 @@
               "language": "json"
             }
           }
+        }
+      }
+    },
+    {
+      "name": "Payments: initialize (customer, online order)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/payments/initialize",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "initialize"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"order_id\": {{orderId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b = pm.response.json();",
+              "if (b.data && b.data.payment) { pm.collectionVariables.set(\"paymentReference\", b.data.payment.reference); console.log(\"Open this link to pay:\", b.data.payment.authorization_url); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments: verify (customer / admin / staff)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/payments/verify/{{paymentReference}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "verify",
+            "{{paymentReference}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
         }
       }
     }

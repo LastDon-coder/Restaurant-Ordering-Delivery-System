@@ -225,6 +225,45 @@ pending --> confirmed --> preparing --> ready_for_delivery --> out_for_delivery 
 - Every change is saved with its history line in one transaction, and the order row is locked, so two people acting at once can't both win. `GET /orders/:id` now includes `status_history` (from, to, reason, time) so customers can see what happened and why.
 - The rules live in `utils/orderWorkflow.js`.
 
+## Payments with Paystack (Step 14)
+
+Online payments use [Paystack](https://paystack.com/docs/api/) (NGN). The same code runs in test and production: only the key changes.
+
+**Setup**
+1. Paystack Dashboard > Settings > API Keys & Webhooks. Copy the **Secret** key (`sk_test_...`) into `backend/.env` as `PAYSTACK_SECRET_KEY=`. Never use the public key here, never commit the key, never put it in React.
+2. Webhook URL (same page): `https://YOUR-PUBLIC-URL/api/v1/payments/webhook`. Paystack can't reach `localhost`, so for local testing run a tunnel such as `ngrok http 5000` and use its https address. Without it, the verify endpoint below still works.
+3. In production set `NODE_ENV=production` and the `sk_live_...` key. The server refuses to start in production without a key and warns if it is a test key.
+4. Without a key the app runs, but payment endpoints answer `503`.
+
+| Method | Path | Who | Does |
+|---|---|---|---|
+| POST | `/api/v1/payments/initialize` | customer | `{ "order_id": 1 }` starts a payment; returns `authorization_url` to send the browser to |
+| GET | `/api/v1/payments/verify/:reference` | owner customer, admin, staff | Asks Paystack what happened and updates the payment |
+| POST | `/api/v1/payments/webhook` | Paystack only | Signed server-to-server notification |
+
+**Flow:** customer places an order with `payment_method: "online"` (Step 12) -> `initialize` -> browser goes to Paystack -> Paystack redirects to `PAYSTACK_CALLBACK_URL?reference=...` (default `FRONTEND_URL/payment/callback`) -> the React page calls `verify/:reference`. The webhook confirms the same thing even if the customer closes the tab. Staff can confirm the order once it is `paid`.
+
+```
+POST /api/v1/payments/initialize   { "order_id": 1 }
+200 { "data": { "payment": { "authorization_url": "https://checkout.paystack.com/...",
+      "access_code": "...", "reference": "ORD-1-9f86d081884c7d65", "amount": "4000.00", "currency": "NGN" } } }
+
+GET /api/v1/payments/verify/ORD-1-9f86d081884c7d65
+200 { "data": { "payment": { "order_id": 1, "order_status": "pending", "payment_method": "online",
+      "payment_status": "paid", "amount": "4000.00", "paid_at": "...", "reference": "ORD-1-9f86d081884c7d65" } } }
+```
+
+How it is kept safe:
+- **The client never sends money.** The amount sent to Paystack (in kobo) comes from the order's own total saved at checkout.
+- **"Paid" is decided by the server, from Paystack's answer**, never from the browser or the redirect. The amount and currency must match exactly, otherwise the payment stays unpaid and the problem is logged (`mismatch`).
+- **Webhook signature:** Paystack signs the raw body with HMAC-SHA512 using your secret key (`x-paystack-signature`). Wrong or missing signature gives `401`. The route is mounted before the JSON parser so the raw bytes are intact.
+- **Idempotent:** webhook retries, double verifies and a verify racing a webhook all give one paid payment (the payment row is locked in a transaction).
+- **References** look like `ORD-<orderId>-<random>` and are created by the server. If a customer pays an older attempt, the money still lands on the right order.
+- Paystack down or slow: `502`, nothing changes, 10 second timeout, no internals leaked.
+- Cash on delivery: the payment becomes `paid` when staff mark the order `delivered`.
+
+**Things that need a human (logged as `DUPLICATE PAYMENT` or "was paid" in the server log):** a customer who pays twice, or pays an order that was cancelled in the meantime. Refund these in the Paystack dashboard for now; an automated admin refund endpoint is a good next addition.
+
 ## Layout
 
 | Path | Purpose |
@@ -235,11 +274,11 @@ pending --> confirmed --> preparing --> ready_for_delivery --> out_for_delivery 
 | `config/db.js` | Shared MySQL connection pool. Use `pool.execute(sql, [values])` |
 | `middleware/errorHandler.js` | 404 handler and the one central error handler |
 | `utils/AppError.js` | `throw new AppError(message, status)` for expected errors |
-| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js`, `orders.js` |
-| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js` |
-| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js` |
+| `routes/` | One file per resource: `health.js`, `auth.js`, `users.js`, `categories.js`, `foods.js`, `cart.js`, `orders.js`, `payments.js`, `paymentWebhook.js` |
+| `controllers/` | Request handlers: `authController.js`, `userController.js`, `categoryController.js`, `foodController.js`, `cartController.js`, `orderController.js`, `paymentController.js` |
+| `models/` | All SQL lives here: `userModel.js`, `passwordResetModel.js`, `categoryModel.js`, `foodModel.js`, `cartModel.js`, `orderModel.js`, `paymentModel.js` |
 | `middleware/` | `auth.js` (authenticate, authorize), `validate.js`, `rateLimiter.js`, `errorHandler.js` |
-| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (place order, change status), `utils/orderWorkflow.js` (status rules) |
+| `services/` | `emailService.js` (prints reset links for now), `cartService.js` (cart totals), `orderService.js` (place order, change status), `paymentService.js` and `paystackService.js` (payments), `utils/orderWorkflow.js` (status rules) |
 | `scripts/seedAdmin.js` | Creates the first admin from `.env` |
 
 All responses use `{ success, message, data }`.
