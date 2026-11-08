@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { useAuth } from '../context/AuthContext';
-import { inviteUser, listUsers, setActive, setRole } from '../services/adminService';
+import { inviteUser, listUsers, resendInvite, setActive, setRole } from '../services/adminService';
 import { friendlyDbError } from '../utils/errors';
 import { statusLabel } from '../utils/orders';
 
@@ -70,16 +70,29 @@ function InviteForm({ onInvited }) {
 function UserRow({ u, isMe, onChanged }) {
   const [role, setRoleValue] = useState(u.role); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null); // 'role' | 'active'
+  const [resent, setResent] = useState(false);
   async function run(fn) {
     setBusy(true); setError('');
     try { await fn(); setConfirm(null); await onChanged(); }
     catch (e) { console.error(e); setError(friendlyDbError(e)); setRoleValue(u.role); setConfirm(null); }
     finally { setBusy(false); }
   }
+  async function resend() {
+    setBusy(true); setError(''); setResent(false);
+    try { await resendInvite(u.id); setResent(true); }
+    catch (e) { console.error(e); setError(e.message); }
+    finally { setBusy(false); }
+  }
   return (
     <li className="order-card">
-      <div className="order-head"><strong>{u.first_name} {u.last_name}{isMe && ' (you)'}</strong><span className={`pill ${u.is_active ? 'pill-ok' : 'pill-cancelled'}`}>{u.is_active ? 'Active' : 'Deactivated'}</span></div>
+      <div className="order-head"><strong>{u.first_name} {u.last_name}{isMe && ' (you)'}</strong><span><span className={`pill ${u.is_active ? 'pill-ok' : 'pill-cancelled'}`}>{u.is_active ? 'Active' : 'Deactivated'}</span>{u.invite_pending && <span className="pill pill-wait">Invite pending</span>}</span></div>
       <p className="small">{u.email}{u.phone ? ` · ${u.phone}` : ''}</p>
+      {u.invite_pending && (
+        <div className="inline-actions">
+          <button type="button" className="btn btn-small" onClick={resend} disabled={busy}>{busy ? 'Sending…' : 'Resend invite'}</button>
+          {resent && <span className="small" role="status">Invitation re-sent to {u.email}.</span>}
+        </div>
+      )}
       {isMe ? <p className="muted small">Role: {statusLabel(u.role)} (you cannot change your own account)</p> : (
         <div className="inline-actions">
           <select value={role} onChange={(e) => setRoleValue(e.target.value)} aria-label={`Role for ${u.email}`} disabled={busy}>{ROLES.map((r) => <option key={r} value={r}>{statusLabel(r)}</option>)}</select>

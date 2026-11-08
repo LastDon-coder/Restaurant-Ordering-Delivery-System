@@ -1,4 +1,5 @@
 // Admin-only: invite a new STAFF or RIDER by email. POST /invite-user { email, first_name, last_name, role }
+// Also: POST /invite-user { action: 'resend', user_id } re-sends the invite to someone who has NOT accepted yet.
 // WHY an Edge Function: creating a login account needs the service key, which must never reach a browser.
 // Flow: verify the caller is an active admin -> Supabase emails the invite link -> the sign-up trigger makes a
 // customer profile -> we set the role -> the person opens the link and chooses their own password
@@ -44,6 +45,34 @@ Deno.serve(async (req) => {
     // 2. Validate input.
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') return respond(400, 'Send a JSON body')
+
+    // 2b. Resend: only for an existing person who was invited and has never signed in. This keeps the button from
+    //     being used to email arbitrary accounts. Their role is left exactly as it is.
+    if (body.action === 'resend') {
+      const userId = String(body.user_id ?? '')
+      if (!/^[0-9a-f-]{36}$/i.test(userId)) return respond(400, 'user_id is required')
+      const { data: found, error: findError } = await admin.auth.admin.getUserById(userId)
+      const target = found?.user
+      if (findError || !target) return respond(404, 'User not found')
+      if (!target.invited_at || target.last_sign_in_at) {
+        return respond(409, 'This person has already accepted their invitation, so there is nothing to resend.')
+      }
+      if (!target.email) return respond(400, 'This user has no email address')
+      const { error: resendError } = await admin.auth.admin.inviteUserByEmail(target.email, {
+        data: target.user_metadata ?? {},
+        redirectTo: `${ORIGIN}/set-password`,
+      })
+      if (resendError) {
+        const msg = (resendError.message ?? '').toLowerCase()
+        if (resendError.status === 429 || msg.includes('rate limit')) {
+          return respond(429, 'Too many emails sent recently. Please wait a few minutes and try again.')
+        }
+        console.error('resend failed', resendError.status, resendError.message)
+        return respond(502, 'Could not re-send the invitation email. Please try again.')
+      }
+      return respond(200, `Invitation re-sent to ${target.email}`, { user_id: userId })
+    }
+
     const email = String(body.email ?? '').trim().toLowerCase()
     const first = String(body.first_name ?? '').trim()
     const last = String(body.last_name ?? '').trim()

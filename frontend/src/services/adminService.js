@@ -70,3 +70,6 @@ export async function setActive(userId, active) {
 
 // ---------- invite staff / riders by email (Edge Function; admin only) ----------
 export const inviteUser = (values) => callFunction('invite-user', values);
+
+// Re-send the invite email to someone who has not accepted yet (the function refuses anyone who has).
+export const resendInvite = (userId) => callFunction('invite-user', { action: 'resend', user_id: userId });

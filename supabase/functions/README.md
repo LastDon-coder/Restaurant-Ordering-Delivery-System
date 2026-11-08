@@ -35,3 +35,6 @@ person chooses their own password on `/set-password`. Needs the same `ALLOWED_OR
 (its value is also used for the link in the email), and **`<ALLOWED_ORIGIN>/set-password` must be listed under
 Authentication -> URL Configuration -> Redirect URLs**. Supabase's built-in email sender is rate limited
 (a few emails per hour); for production add your own SMTP server under Authentication -> SMTP.
+
+`POST /functions/v1/invite-user` with `{ "action": "resend", "user_id": "<uuid>" }` re-sends the invite. It only works for
+someone who was invited and has never signed in (the Users list marks them "Invite pending"); anyone else gets a 409.
