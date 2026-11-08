@@ -1,6 +1,10 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminMenuPage from './pages/AdminMenuPage';
+import AdminRefundsPage from './pages/AdminRefundsPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import RiderPage from './pages/RiderPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
@@ -28,6 +32,14 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute roles={['staff', 'admin']} />}>
           <Route path="staff/orders" element={<StaffOrdersPage />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['admin']} />}>
+          <Route path="admin/menu" element={<AdminMenuPage />} />
+          <Route path="admin/refunds" element={<AdminRefundsPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['rider']} />}>
+          <Route path="rider" element={<RiderPage />} />
         </Route>
         {/* Next steps add: cart, checkout, orders (customer), admin/staff and rider dashboards behind <ProtectedRoute roles=[...]> */}
         <Route path="*" element={<NotFoundPage />} />

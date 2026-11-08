@@ -115,3 +115,9 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 .track .dot { display: block; height: 6px; border-radius: 3px; background: #ddd; margin-bottom: 4px; }
 .track .done { color: #444; } .track .done .dot { background: var(--brand); opacity: .55; }
 .track .current { color: #000; font-weight: 700; } .track .current .dot { background: var(--brand); }
+
+.form select, .form textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--surface); color: var(--text); width: 100%; }
+.form label.radio input { width: auto; }
+.tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+a.tab { text-decoration: none; color: inherit; }
+a.tab.active { color: #fff; }

@@ -16,3 +16,6 @@ async function call(path, body) {
 
 export const initializePayment = (orderId) => call('initialize', { order_id: orderId }); // -> { authorization_url, reference }
 export const verifyPayment = (reference) => call('verify', { reference }); // -> { result, order_id }
+
+// Admin only (the Edge Function re-checks the role). Returns { refund_status } style data from the function.
+export const refundPayment = (orderId, reason) => call('refund', { order_id: orderId, reason });
