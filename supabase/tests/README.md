@@ -1,0 +1,11 @@
+# Database tests
+
+`business_rules.test.sql` checks the rules that protect money and permissions, using the real database functions,
+RLS policies and constraints (61 checks): role safety, server-side cart totals, price snapshots, status transitions,
+who may do what, delivery flow, Paystack payment and refund handling, and admin safeguards.
+
+**Run it:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
+is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
+message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.
+
+Run it again after every migration or change to a function, policy or grant.
