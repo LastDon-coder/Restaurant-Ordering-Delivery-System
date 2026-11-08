@@ -121,3 +121,5 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 .tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
 a.tab { text-decoration: none; color: inherit; }
 a.tab.active { color: #fff; }
+
+.notice { background: color-mix(in srgb, var(--brand) 12%, transparent); padding: 10px 12px; border-radius: 8px; margin: 0 0 10px; }

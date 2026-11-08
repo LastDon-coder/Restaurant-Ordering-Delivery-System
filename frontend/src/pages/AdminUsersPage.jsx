@@ -2,11 +2,70 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { useAuth } from '../context/AuthContext';
-import { listUsers, setActive, setRole } from '../services/adminService';
+import { inviteUser, listUsers, setActive, setRole } from '../services/adminService';
 import { friendlyDbError } from '../utils/errors';
 import { statusLabel } from '../utils/orders';
 
 const ROLES = ['customer', 'staff', 'rider', 'admin'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function InviteForm({ onInvited }) {
+  const [open, setOpen] = useState(false);
+  const [v, setV] = useState({ first_name: '', last_name: '', email: '', role: 'staff' });
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [sent, setSent] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    setFormError('');
+    setSent('');
+    const next = {};
+    if (!v.first_name.trim()) next.first_name = 'Required';
+    if (!v.last_name.trim()) next.last_name = 'Required';
+    if (!EMAIL_RE.test(v.email.trim())) next.email = 'Enter a valid email';
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setBusy(true);
+    try {
+      await inviteUser({ ...v, email: v.email.trim(), first_name: v.first_name.trim(), last_name: v.last_name.trim() });
+      setSent(`Invitation sent to ${v.email.trim()}. They will get an email to set a password.`);
+      setV({ first_name: '', last_name: '', email: '', role: 'staff' });
+      setOpen(false);
+      onInvited();
+    } catch (err) {
+      console.error(err);
+      setFormError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      {sent && <p className="notice" role="status">{sent}</p>}
+      {!open ? (
+        <button type="button" className="btn btn-small" onClick={() => { setOpen(true); setSent(''); }}>+ Invite staff or rider</button>
+      ) : (
+        <form className="form order-card" onSubmit={submit} noValidate>
+          <h3>Invite by email</h3>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
+          <div className="row">
+            <label>First name<input value={v.first_name} onChange={(e) => setV({ ...v, first_name: e.target.value })} maxLength={100} />{errors.first_name && <span className="field-error">{errors.first_name}</span>}</label>
+            <label>Last name<input value={v.last_name} onChange={(e) => setV({ ...v, last_name: e.target.value })} maxLength={100} />{errors.last_name && <span className="field-error">{errors.last_name}</span>}</label>
+          </div>
+          <label>Email<input type="email" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} />{errors.email && <span className="field-error">{errors.email}</span>}</label>
+          <label>Role<select value={v.role} onChange={(e) => setV({ ...v, role: e.target.value })}><option value="staff">Staff (manages orders)</option><option value="rider">Rider (delivers orders)</option></select></label>
+          <div className="inline-actions">
+            <button className="btn btn-small" disabled={busy}>{busy ? 'Sending…' : 'Send invitation'}</button>
+            <button type="button" className="btn btn-ghost btn-small" onClick={() => setOpen(false)} disabled={busy}>Cancel</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
 function UserRow({ u, isMe, onChanged }) {
   const [role, setRoleValue] = useState(u.role); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
@@ -51,7 +110,8 @@ export default function AdminUsersPage() {
     <section>
       <AdminNav />
       <h1>Users & roles</h1>
-      <p className="muted small">New staff and riders first create an account with Sign up (they start as customers). Find them here and change their role. Deactivated people are locked out immediately.</p>
+      <p className="muted small">Invite new staff or riders by email, or change the role of an existing account. Deactivated people are locked out immediately.</p>
+      <InviteForm onInvited={() => load(true)} />
       <form className="inline-actions" onSubmit={(e) => { e.preventDefault(); setQ(search.trim()); }}>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email" aria-label="Search users" />
         <button className="btn btn-small">Search</button>

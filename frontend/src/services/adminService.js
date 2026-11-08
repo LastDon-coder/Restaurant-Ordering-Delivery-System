@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { callFunction } from './edge';
 
 // ---------- menu (admin only; Row Level Security enforces it, the UI just hides what you can't use) ----------
 export async function adminCategories() {
@@ -66,3 +67,6 @@ export async function setActive(userId, active) {
   const { error } = await supabase.rpc('admin_set_active', { p_user: userId, p_active: active });
   if (error) throw error;
 }
+
+// ---------- invite staff / riders by email (Edge Function; admin only) ----------
+export const inviteUser = (values) => callFunction('invite-user', values);

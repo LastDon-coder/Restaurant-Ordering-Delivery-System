@@ -26,3 +26,12 @@ curl -X POST https://<ref>.supabase.co/functions/v1/payments/verify \
   -H "Authorization: Bearer <access_token>" -H "apikey: <publishable key>" \
   -H "Content-Type: application/json" -d '{"reference": "ORD-1-xxxxxxxxxxxxxxxx"}'
 ```
+
+## invite-user (admin invites staff / riders by email)
+
+`POST /functions/v1/invite-user` with `{ "email", "first_name", "last_name", "role": "staff" | "rider" }` and the admin's login token.
+The function checks the caller is an active admin, asks Supabase Auth to email an invite, sets the role, and the invited
+person chooses their own password on `/set-password`. Needs the same `ALLOWED_ORIGIN` secret as `payments`
+(its value is also used for the link in the email), and **`<ALLOWED_ORIGIN>/set-password` must be listed under
+Authentication -> URL Configuration -> Redirect URLs**. Supabase's built-in email sender is rate limited
+(a few emails per hour); for production add your own SMTP server under Authentication -> SMTP.
