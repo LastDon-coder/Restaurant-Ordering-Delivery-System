@@ -93,3 +93,7 @@ a { color: var(--brand); }
 .summary dt, .summary dd { margin: 0; }
 .summary-total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px !important; font-weight: 700; font-size: 1.1rem; }
 @media (max-width: 480px) { .cart-line { grid-template-columns: 1fr auto; } .line-total { text-align: left; } }
+
+.form h2 { font-size: 1.1rem; margin: 12px 0 0; }
+.form label.radio { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
+a.btn { display: inline-block; text-decoration: none; text-align: center; }

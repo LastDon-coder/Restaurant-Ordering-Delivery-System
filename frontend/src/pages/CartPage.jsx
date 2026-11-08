@@ -105,9 +105,11 @@ export default function CartPage() {
         </div>
       </dl>
       <p className="muted small">Prices are confirmed again when you place the order.</p>
-      <button type="button" className="btn" disabled title="Checkout comes next">
-        Checkout (coming next)
-      </button>
+      {unavailable.length > 0 ? (
+        <button type="button" className="btn" disabled>Checkout</button>
+      ) : (
+        <Link className="btn" to="/checkout">Checkout</Link>
+      )}
     </section>
   );
 }
