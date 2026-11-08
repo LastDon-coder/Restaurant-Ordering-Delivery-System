@@ -1,8 +1,10 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 export default function Layout() {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, role, loading, signOut } = useAuth();
+  const { count } = useCart();
 
   return (
     <>
@@ -22,6 +24,11 @@ export default function Layout() {
                   Sign up
                 </NavLink>
               </>
+            )}
+            {role === 'customer' && (
+              <NavLink to="/cart" aria-label={`Cart, ${count} items`}>
+                Cart{count > 0 && <span className="badge">{count}</span>}
+              </NavLink>
             )}
             {user && (
               <>

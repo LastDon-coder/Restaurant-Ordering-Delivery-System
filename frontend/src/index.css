@@ -74,3 +74,22 @@ a { color: var(--brand); }
 .form .row label { min-width: 150px; }
 .field-error, .form-error { color: var(--error); font-size: .9rem; font-weight: 400; margin: 0; }
 .form-error { background: color-mix(in srgb, var(--error) 10%, transparent); padding: 10px 12px; border-radius: 8px; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 6px; }
+.card-footer .price { margin: 0 !important; padding: 0; }
+.badge { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--brand); color: #fff; font-size: .8rem; text-align: center; }
+.small { font-size: .85rem; }
+.cart-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cart-line { display: grid; grid-template-columns: 1fr auto auto; gap: 8px 14px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.cart-line-off { opacity: .6; }
+.cart-info h3 { font-size: 1rem; }
+.cart-info p { margin: 0; font-size: .9rem; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.qty { min-width: 24px; text-align: center; font-weight: 600; }
+.line-total { margin: 0; font-weight: 700; text-align: right; min-width: 90px; }
+.link-button { grid-column: 1 / -1; justify-self: start; background: none; border: 0; padding: 0; color: var(--error); cursor: pointer; font-size: .9rem; text-decoration: underline; }
+.summary { margin: 0 0 8px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.summary > div { display: flex; justify-content: space-between; padding: 4px 0; }
+.summary dt, .summary dd { margin: 0; }
+.summary-total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px !important; font-weight: 700; font-size: 1.1rem; }
+@media (max-width: 480px) { .cart-line { grid-template-columns: 1fr auto; } .line-total { text-align: left; } }

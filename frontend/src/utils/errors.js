@@ -11,3 +11,15 @@ export function friendlyAuthError(error) {
   if (msg.includes('failed to fetch') || msg.includes('network')) return 'Cannot reach the server. Check your connection.';
   return 'Something went wrong. Please try again.';
 }
+
+// Errors from our SQL functions (add_to_cart, place_order, ...). Their messages are written for customers.
+export function friendlyDbError(error) {
+  const code = error?.code;
+  if (code === '22023' || code === '55000') return error.message;
+  if (code === '23514') return 'You can order at most 50 of one item.';
+  if (code === 'P0002') return 'That item is no longer available.';
+  if (code === '28000' || code === 'PGRST301' || (error?.message || '').toLowerCase().includes('jwt')) return 'Please log in again.';
+  if (code === '42501') return 'Your account cannot do that.';
+  if ((error?.message || '').toLowerCase().includes('fetch')) return 'Cannot reach the server. Check your connection.';
+  return 'Something went wrong. Please try again.';
+}
