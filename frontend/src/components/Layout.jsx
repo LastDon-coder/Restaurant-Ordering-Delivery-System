@@ -25,6 +25,8 @@ export default function Layout() {
                 </NavLink>
               </>
             )}
+            {role === 'customer' && <NavLink to="/orders" end>My orders</NavLink>}
+            {(role === 'staff' || role === 'admin') && <NavLink to="/staff/orders">Orders</NavLink>}
             {role === 'customer' && (
               <NavLink to="/cart" aria-label={`Cart, ${count} items`}>
                 Cart{count > 0 && <span className="badge">{count}</span>}

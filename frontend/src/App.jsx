@@ -3,7 +3,9 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import MyOrdersPage from './pages/MyOrdersPage';
 import OrderPage from './pages/OrderPage';
+import StaffOrdersPage from './pages/StaffOrdersPage';
 import PaymentCallbackPage from './pages/PaymentCallbackPage';
 import LoginPage from './pages/LoginPage';
 import MenuPage from './pages/MenuPage';
@@ -20,8 +22,12 @@ export default function App() {
         <Route element={<ProtectedRoute roles={['customer']} />}>
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="orders" element={<MyOrdersPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="payment/callback" element={<PaymentCallbackPage />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['staff', 'admin']} />}>
+          <Route path="staff/orders" element={<StaffOrdersPage />} />
         </Route>
         {/* Next steps add: cart, checkout, orders (customer), admin/staff and rider dashboards behind <ProtectedRoute roles=[...]> */}
         <Route path="*" element={<NotFoundPage />} />

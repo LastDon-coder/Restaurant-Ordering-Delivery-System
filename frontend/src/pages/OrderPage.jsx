@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import CancelOrderButton from '../components/CancelOrderButton';
+import OrderStatusTrack from '../components/OrderStatusTrack';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { getOrder } from '../services/orderService';
 import { initializePayment } from '../services/paymentService';
 import { friendlyDbError } from '../utils/errors';
 import { formatMoney } from '../utils/format';
 
-const label = (s) => s.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+import { CLOSED, one, statusLabel as label } from '../utils/orders';
 
 export default function OrderPage() {
   const { id } = useParams();
@@ -47,13 +49,20 @@ export default function OrderPage() {
   if (state === 'error') return <ErrorMessage message={error} onRetry={load} />;
   if (state === 'missing') return <EmptyState title="Order not found"><Link to="/">Back to the menu</Link></EmptyState>;
 
-  const pay = order.payments?.[0] ?? order.payments; // one payment per order
+  const pay = one(order.payments); // one payment per order
+  const closing = CLOSED.includes(order.order_status)
+    ? [...(order.order_status_history ?? [])].filter((h) => h.to_status === order.order_status).sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    : null;
   const needsPayment = pay?.payment_method === 'online' && ['pending', 'failed'].includes(pay.payment_status) && order.order_status === 'pending';
 
   return (
     <section>
       <h1>Order #{order.id}</h1>
-      <p><strong>Status:</strong> {label(order.order_status)} · <strong>Payment:</strong> {pay ? `${label(pay.payment_method)} (${label(pay.payment_status)})` : '—'}</p>
+      <OrderStatusTrack status={order.order_status} />
+      {closing?.reason && <p className="muted">Reason: {closing.reason}</p>}
+      <p><strong>Payment:</strong> {pay ? `${label(pay.payment_method)} (${label(pay.payment_status)})` : '—'}</p>
+      <p><Link to="/orders">← All my orders</Link></p>
+      {order.order_status === 'pending' && <p><CancelOrderButton orderId={order.id} onDone={load} /></p>}
       {payError && <p className="form-error" role="alert">{payError}</p>}
       {needsPayment && (
         <button type="button" className="btn" onClick={payNow} disabled={paying}>{paying ? 'Opening payment…' : 'Pay now'}</button>
