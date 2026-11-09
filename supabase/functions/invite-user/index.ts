@@ -6,12 +6,20 @@
 // (the admin never sees or sets a password).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'http://localhost:5173'
+// ALLOWED_ORIGIN may list several site addresses, comma-separated (e.g. the live site and http://localhost:5173).
+// The first one is the default. Links we create (payment return page, invite page) point back to the site that
+// made the request, but only if it is in the list. CORS itself is not the security boundary here: every call
+// needs a signed-in user's bearer token (no cookies are used), so any origin may read the response.
+const ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') ?? 'http://localhost:5173').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean)
+const ORIGIN = ORIGINS[0]
+const pickOrigin = (req: Request) => {
+  const o = req.headers.get('Origin')
+  return o && ORIGINS.includes(o) ? o : ORIGIN
+}
 const cors = {
-  'Access-Control-Allow-Origin': ORIGIN,
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  Vary: 'Origin',
 }
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/
 const ROLES = ['staff', 'rider'] // admins are promoted deliberately from the Users tab, not by invite
@@ -60,7 +68,7 @@ Deno.serve(async (req) => {
       if (!target.email) return respond(400, 'This user has no email address')
       const { error: resendError } = await admin.auth.admin.inviteUserByEmail(target.email, {
         data: target.user_metadata ?? {},
-        redirectTo: `${ORIGIN}/set-password`,
+        redirectTo: `${pickOrigin(req)}/set-password`,
       })
       if (resendError) {
         const msg = (resendError.message ?? '').toLowerCase()
@@ -84,7 +92,7 @@ Deno.serve(async (req) => {
     // 3. Send the invite (Supabase emails the link; the new user is created unconfirmed).
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { first_name: first, last_name: last },
-      redirectTo: `${ORIGIN}/set-password`,
+      redirectTo: `${pickOrigin(req)}/set-password`,
     })
     if (inviteError || !invited?.user) {
       const msg = (inviteError?.message ?? '').toLowerCase()

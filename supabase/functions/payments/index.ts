@@ -5,13 +5,21 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const PAYSTACK = 'https://api.paystack.co'
-const ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'http://localhost:5173'
+// ALLOWED_ORIGIN may list several site addresses, comma-separated (e.g. the live site and http://localhost:5173).
+// The first one is the default. Links we create (payment return page, invite page) point back to the site that
+// made the request, but only if it is in the list. CORS itself is not the security boundary here: every call
+// needs a signed-in user's bearer token (no cookies are used), so any origin may read the response.
+const ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') ?? 'http://localhost:5173').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean)
+const ORIGIN = ORIGINS[0]
+const pickOrigin = (req: Request) => {
+  const o = req.headers.get('Origin')
+  return o && ORIGINS.includes(o) ? o : ORIGIN
+}
 const REF_RE = /^ORD-\d{1,10}-[a-f0-9]{16}$/
 const cors = {
-  'Access-Control-Allow-Origin': ORIGIN,
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  Vary: 'Origin',
 }
 
 const secretKeys = Deno.env.get('SUPABASE_SECRET_KEYS')
@@ -62,7 +70,7 @@ async function readJson(req: Request) {
   }
 }
 
-async function initialize(userId: string, body: Record<string, unknown>) {
+async function initialize(userId: string, body: Record<string, unknown>, frontend: string) {
   const orderId = Number(body.order_id)
   if (!Number.isInteger(orderId) || orderId < 1) return respond(400, 'order_id must be a positive integer')
 
@@ -70,7 +78,6 @@ async function initialize(userId: string, body: Record<string, unknown>) {
   const { data: start, error } = await admin.rpc('pay_start', { p_user: userId, p_order_id: orderId })
   if (error) return dbError(error)
 
-  const frontend = Deno.env.get('FRONTEND_URL') ?? ORIGIN
   let res: Response
   try {
     res = await paystack('/transaction/initialize', {
@@ -192,7 +199,7 @@ Deno.serve(async (req) => {
 
   try {
     const path = new URL(req.url).pathname.replace(/\/+$/, '')
-    if (path.endsWith('/initialize')) return await initialize(user.id, body)
+    if (path.endsWith('/initialize')) return await initialize(user.id, body, pickOrigin(req))
     if (path.endsWith('/verify')) return await verify(user.id, body)
     if (path.endsWith('/refund')) return await refund(user.id, body)
     return respond(404, 'Not found')

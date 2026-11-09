@@ -38,3 +38,10 @@ Authentication -> URL Configuration -> Redirect URLs**. Supabase's built-in emai
 
 `POST /functions/v1/invite-user` with `{ "action": "resend", "user_id": "<uuid>" }` re-sends the invite. It only works for
 someone who was invited and has never signed in (the Users list marks them "Invite pending"); anyone else gets a 409.
+
+## Production addresses (after deploying the frontend)
+
+`ALLOWED_ORIGIN` accepts several site addresses separated by commas, for example
+`https://restaurant-ordering-delivery.vercel.app,http://localhost:5173`. The first is the default. The payment return
+link and the invite link point back to whichever listed site made the request, so live and local both work.
+Do **not** set `PAYSTACK_CALLBACK_URL` unless you want to force one fixed return address (it overrides the above).
