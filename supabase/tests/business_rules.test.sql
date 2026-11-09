@@ -7,7 +7,7 @@ declare
   r text[] := '{}';
   c1 uuid := gen_random_uuid(); c2 uuid := gen_random_uuid(); st uuid := gen_random_uuid();
   rd uuid := gen_random_uuid(); rd2 uuid := gen_random_uuid(); ad uuid := gen_random_uuid(); evil uuid := gen_random_uuid();
-  cat bigint; f1 bigint; f2 bigint; fx bigint; oc bigint; oo bigint; ref text; kobo bigint; v jsonb; n int; txt text;
+  cat bigint; f1 bigint; f2 bigint; fx bigint; oc bigint; oo bigint; oz bigint; zn bigint; zf bigint; zc bigint; ref text; kobo bigint; v jsonb; n int; txt text;
   fails int;
 begin
   -- helpers (pg_temp = private to this session). m(): record a result. as_*(): switch identity like the API does.
@@ -53,7 +53,7 @@ begin
   perform public.add_to_cart(f1, 2); perform public.add_to_cart(f2, 1);
   v := public.get_cart();
   r := r || pg_temp.m('cart subtotal computed by server (2x1000 + 250.50)', (v->'summary'->>'subtotal')::numeric = 2250.50);
-  r := r || pg_temp.m('delivery fee 500 added, total 2750.50', (v->'summary'->>'total')::numeric = 2750.50);
+  r := r || pg_temp.m('base delivery fee 2000 added, total 4250.50', (v->'summary'->>'total')::numeric = 4250.50);
   r := r || pg_temp.expect('cannot exceed 50 of one item', format('select public.add_to_cart(%s, 49)', f1), '22023');
   r := r || pg_temp.expect('quantity 0 rejected', format('select public.add_to_cart(%s, 0)', f1), '22023');
   r := r || pg_temp.expect('sold-out food cannot be added', format('select public.add_to_cart(%s, 1)', fx), 'P0002');
@@ -64,13 +64,13 @@ begin
   perform pg_temp.as_user(c1);
   r := r || pg_temp.expect('address is required', 'select public.place_order(''{}''::jsonb, ''cash_on_delivery'')', '22023');
   oc := public.place_order('{"street_address":"1 Aba Rd","city":"PH","state":"Rivers"}'::jsonb, 'cash_on_delivery');
-  r := r || pg_temp.m('order total = 2750.50', (select total_amount from public.orders where id = oc) = 2750.50);
+  r := r || pg_temp.m('order total = 4250.50', (select total_amount from public.orders where id = oc) = 4250.50);
   r := r || pg_temp.m('cart emptied by place_order', not exists (select 1 from public.cart_items ci join public.carts c on c.id = ci.cart_id where c.user_id = c1));
   r := r || pg_temp.expect('empty cart cannot be ordered', 'select public.place_order(''{"street_address":"a","city":"b","state":"c"}''::jsonb, ''cash_on_delivery'')', '22023');
   perform pg_temp.as_su();
   update public.food_items set price = 9999 where id = f1;
   r := r || pg_temp.m('price change later does not alter the order snapshot', (select price from public.order_items where order_id = oc and food_id = f1) = 1000.00
-                      and (select total_amount from public.orders where id = oc) = 2750.50);
+                      and (select total_amount from public.orders where id = oc) = 4250.50);
   update public.food_items set price = 1000 where id = f1;
 
   ---------- isolation between customers ----------
@@ -117,7 +117,7 @@ begin
   r := r || pg_temp.expect('online order cannot be confirmed before payment', format('select public.change_order_status(%s, %L)', oo, 'confirmed'), '55000');
   perform pg_temp.as_service();
   v := public.pay_start(c1, oo); ref := v->>'reference'; kobo := (v->>'amount_kobo')::bigint;
-  r := r || pg_temp.m('payment amount comes from DB (2x250.50 + 500 = 1001.00 -> 100100 kobo)', kobo = 100100);
+  r := r || pg_temp.m('payment amount comes from DB (2x250.50 + 2000 = 2501.00 -> 250100 kobo)', kobo = 250100);
   r := r || pg_temp.m('wrong amount refused', public.pay_apply_charge(ref, kobo - 1, 'NGN', true)->>'result' = 'amount_mismatch');
   r := r || pg_temp.m('wrong currency refused', public.pay_apply_charge(ref, kobo, 'USD', true)->>'result' = 'amount_mismatch');
   r := r || pg_temp.m('unknown reference refused', public.pay_apply_charge('ORD-1-0000000000000000', kobo, 'NGN', true)->>'result' = 'unknown_reference');
@@ -131,7 +131,7 @@ begin
   ---------- refunds ----------
   perform pg_temp.as_service();
   r := r || pg_temp.expect('non-admin cannot reserve a refund', format('select public.pay_reserve_refund(%L, %s, %L)', st, oo, 'x'), '42501');
-  r := r || pg_temp.m('admin reserves refund for the DB amount', (public.pay_reserve_refund(ad, oo, 'Customer asked')->>'amount_kobo')::bigint = 100100);
+  r := r || pg_temp.m('admin reserves refund for the DB amount', (public.pay_reserve_refund(ad, oo, 'Customer asked')->>'amount_kobo')::bigint = 250100);
   r := r || pg_temp.expect('second refund on same payment refused', format('select public.pay_reserve_refund(%L, %s, %L)', ad, oo, 'again'), '55000');
   r := r || pg_temp.m('refund webhook reports processed', (public.pay_apply_refund(ref, 'processed', 'rf_1')->>'result') = 'processed');
   -- (separate statement: a read in the same statement as the write would see the old snapshot)
@@ -165,6 +165,43 @@ begin
   r := r || pg_temp.expect('...or deactivated', format('select public.admin_set_active(%L, false)', rd2), '55000');
   perform pg_temp.as_user(c1);
   r := r || pg_temp.expect('customer cannot cancel a confirmed order', format('select public.change_order_status(%s, %L)', oo, 'cancelled'), '42501');
+
+  ---------- delivery zones: fee = base + zone extra, all server-side ----------
+  perform pg_temp.as_user(ad);
+  insert into public.delivery_zones (zone_name, extra_fee) values ('T-Near', 0) returning id into zn;
+  insert into public.delivery_zones (zone_name, extra_fee) values ('T-Far', 1500) returning id into zf;
+  insert into public.delivery_zones (zone_name, extra_fee, is_active) values ('T-Closed', 300, false) returning id into zc;
+  r := r || pg_temp.expect('zone names are unique ignoring case', 'insert into public.delivery_zones (zone_name) values (''t-far'')', '23505');
+  r := r || pg_temp.expect('negative zone fee rejected', 'insert into public.delivery_zones (zone_name, extra_fee) values (''T-Neg'', -1)', '23514');
+  r := r || pg_temp.m('admin sees inactive zones', exists (select 1 from public.delivery_zones where id = zc));
+  perform pg_temp.as_user(c2);
+  r := r || pg_temp.m('non-admin sees only active zones', exists (select 1 from public.delivery_zones where id = zf) and not exists (select 1 from public.delivery_zones where id = zc));
+  r := r || pg_temp.expect('non-admin cannot create zones', 'insert into public.delivery_zones (zone_name) values (''T-Evil'')', '42501');
+  r := r || pg_temp.expect('non-admin cannot change the base fee', 'select public.admin_set_delivery_fee(1)', '42501');
+  perform pg_temp.as_user(c1);
+  perform public.add_to_cart(f1, 1);
+  r := r || pg_temp.m('quote with no zone = base fee 2000', (public.delivery_quote(null)->>'delivery_fee')::numeric = 2000 and (public.delivery_quote()->>'total')::numeric = 3000);
+  r := r || pg_temp.m('quote for a near zone adds 0', (public.delivery_quote(zn)->>'delivery_fee')::numeric = 2000);
+  r := r || pg_temp.m('quote for a far zone adds its extra (2000 + 1500)', (public.delivery_quote(zf)->>'delivery_fee')::numeric = 3500 and (public.delivery_quote(zf)->>'total')::numeric = 4500);
+  r := r || pg_temp.expect('inactive zone refused', format('select public.delivery_quote(%s)', zc), '22023');
+  r := r || pg_temp.expect('unknown zone refused', 'select public.delivery_quote(999999999)', '22023');
+  r := r || pg_temp.expect('place_order refuses an inactive zone', format('select public.place_order(%L::jsonb, %L, %s)', '{"street_address":"9 Aba Rd","city":"PH","state":"Rivers"}', 'cash_on_delivery', zc), '22023');
+  r := r || pg_temp.m('...and the cart is still there after the refusal', exists (select 1 from public.cart_items ci join public.carts c on c.id = ci.cart_id where c.user_id = c1));
+  oz := public.place_order('{"street_address":"9 Aba Rd","city":"PH","state":"Rivers"}'::jsonb, 'cash_on_delivery', zf);
+  r := r || pg_temp.m('order priced with the zone: fee 3500, total 4500', (select delivery_fee from public.orders where id = oz) = 3500 and (select total_amount from public.orders where id = oz) = 4500);
+  r := r || pg_temp.m('order stores the zone name', (select delivery_zone_name from public.orders where id = oz) = 'T-Far');
+  perform pg_temp.as_user(ad);
+  r := r || pg_temp.m('admin can set the base fee', (public.admin_set_delivery_fee(2500)->>'base_fee')::numeric = 2500);
+  r := r || pg_temp.expect('invalid base fee rejected', 'select public.admin_set_delivery_fee(-5)', '22023');
+  update public.delivery_zones set extra_fee = 9000, zone_name = 'T-Far renamed' where id = zf;
+  perform pg_temp.as_user(c1);
+  r := r || pg_temp.m('later fee/zone changes do not alter the placed order', (select delivery_fee from public.orders where id = oz) = 3500 and (select delivery_zone_name from public.orders where id = oz) = 'T-Far');
+  perform public.add_to_cart(f1, 1);
+  r := r || pg_temp.m('new base fee applies to the next quote (2500 + 9000)', (public.delivery_quote(zf)->>'delivery_fee')::numeric = 11500);
+  perform pg_temp.as_su();
+  delete from public.delivery_zones where id = zf;
+  r := r || pg_temp.m('deleting a zone keeps the order and its zone name', (select delivery_zone_name from public.orders where id = oz) = 'T-Far' and (select delivery_zone_id from public.orders where id = oz) is null);
+  update private.settings set value = '2000.00' where key = 'delivery_fee';
 
   perform pg_temp.as_su();
   select count(*) into fails from unnest(r) x where x like 'FAIL%';
