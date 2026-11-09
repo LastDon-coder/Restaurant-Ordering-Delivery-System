@@ -58,6 +58,9 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="muted">
+        <Link to="/forgot-password">Forgot your password?</Link>
+      </p>
+      <p className="muted">
         New here? <Link to="/register">Create an account</Link>
       </p>
     </section>

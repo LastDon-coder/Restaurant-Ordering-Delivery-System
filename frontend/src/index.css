@@ -88,6 +88,7 @@ a { color: var(--brand); }
 .qty { min-width: 24px; text-align: center; font-weight: 600; }
 .line-total { margin: 0; font-weight: 700; text-align: right; min-width: 90px; }
 .link-button { grid-column: 1 / -1; justify-self: start; background: none; border: 0; padding: 0; color: var(--error); cursor: pointer; font-size: .9rem; text-decoration: underline; }
+.text-link { background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; }
 .summary { margin: 0 0 8px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .summary > div { display: flex; justify-content: space-between; padding: 4px 0; }
 .summary dt, .summary dd { margin: 0; }
