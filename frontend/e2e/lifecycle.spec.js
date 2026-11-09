@@ -95,7 +95,7 @@ test('customer orders into that area (cash on delivery)', async () => {
 test('staff confirm, prepare, mark ready and assign the rider', async () => {
   const { page } = people.staff;
   await page.goto('/staff/orders');
-  const card = page.locator('.order-card', { hasText: `Order #${s.orderId}` });
+  const card = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}\\b`) });
   await expect(card).toBeVisible();
   await expect(card).toContainText(ZONE); // the area is shown on the staff card
   await card.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -110,7 +110,7 @@ test('staff confirm, prepare, mark ready and assign the rider', async () => {
 test('rider picks up and delivers', async () => {
   const { page } = people.rider;
   await page.goto('/rider');
-  const job = page.locator('.order-card', { hasText: `Order #${s.orderId}` });
+  const job = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}\\b`) });
   await expect(job).toBeVisible();
   await expect(job).toContainText(ZONE); // the area is shown on the rider card
   await job.getByRole('button', { name: 'Picked up' }).click();

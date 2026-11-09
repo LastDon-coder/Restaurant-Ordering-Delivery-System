@@ -41,7 +41,7 @@ test('rider', async ({ page }) => {
 
 test('admin', async ({ page }) => {
   await login(page, 'admin');
-  for (const [path, heading] of [['/admin/menu', 'Menu'], ['/admin/delivery', 'Delivery'], ['/staff/reviews', 'Reviews'], ['/admin/users', 'Users']]) {
+  for (const [path, heading] of [['/admin/menu', 'Menu'], ['/admin/delivery', 'Delivery'], ['/staff/reviews', 'Reviews'], ['/admin/users', 'Users & roles']]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
