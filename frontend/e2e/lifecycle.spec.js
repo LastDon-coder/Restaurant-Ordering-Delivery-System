@@ -95,12 +95,17 @@ test('customer orders into that area (cash on delivery)', async () => {
 test('staff confirm, prepare, mark ready and assign the rider', async () => {
   const { page } = people.staff;
   await page.goto('/staff/orders');
-  const card = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}\\b`) });
+  const card = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}(?!\\d)`) });
   await expect(card).toBeVisible();
   await expect(card).toContainText(ZONE); // the area is shown on the staff card
+  // Each click re-renders the card with the new status, so wait for the status bar before the next step.
+  const at = (label) => expect(card.getByRole('list', { name: `Order status: ${label}` })).toBeVisible();
   await card.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await at('Confirmed');
   await card.getByRole('button', { name: 'Start preparing' }).click();
+  await at('Preparing');
   await card.getByRole('button', { name: 'Mark ready' }).click();
+  await at('Ready for delivery');
   await expect(card.getByLabel('Choose rider')).toBeVisible();
   await card.getByLabel('Choose rider').selectOption({ label: 'E2E Rider' });
   await card.getByRole('button', { name: 'Assign rider' }).click();
@@ -110,7 +115,7 @@ test('staff confirm, prepare, mark ready and assign the rider', async () => {
 test('rider picks up and delivers', async () => {
   const { page } = people.rider;
   await page.goto('/rider');
-  const job = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}\\b`) });
+  const job = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}(?!\\d)`) });
   await expect(job).toBeVisible();
   await expect(job).toContainText(ZONE); // the area is shown on the rider card
   await job.getByRole('button', { name: 'Picked up' }).click();
