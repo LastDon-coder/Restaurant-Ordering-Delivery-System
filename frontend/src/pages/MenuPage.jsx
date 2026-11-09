@@ -1,11 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import FoodCard from '../components/FoodCard';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { useMenu } from '../hooks/useMenu';
+import { getFoodRatings } from '../services/reviewService';
 
 export default function MenuPage() {
   const { categories, foods, loading, error, reload } = useMenu();
   const [categoryId, setCategoryId] = useState(null); // null = all
+  const [ratings, setRatings] = useState({});             // food id -> { avg, count }; optional, so failures are ignored
+
+  useEffect(() => {
+    getFoodRatings().then(setRatings).catch((e) => console.error('ratings unavailable', e));
+  }, []);
 
   const visible = useMemo(
     () => (categoryId ? foods.filter((f) => f.category_id === categoryId) : foods),
@@ -41,7 +47,7 @@ export default function MenuPage() {
       ) : (
         <div className="grid">
           {visible.map((f) => (
-            <FoodCard key={f.id} food={f} />
+            <FoodCard key={f.id} food={f} rating={ratings[f.id]} />
           ))}
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import CancelOrderButton from '../components/CancelOrderButton';
+import OrderReviews from '../components/OrderReviews';
 import OrderStatusTrack from '../components/OrderStatusTrack';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { getOrder } from '../services/orderService';
@@ -81,6 +82,7 @@ export default function OrderPage() {
         <div className="summary-total"><dt>Total</dt><dd>{formatMoney(order.total_amount)}</dd></div>
       </dl>
       <p className="muted">Deliver to: {order.delivery_street_address}, {order.delivery_city}, {order.delivery_state}{order.delivery_landmark ? ` (${order.delivery_landmark})` : ''}</p>
+      {order.order_status === 'delivered' && <OrderReviews order={order} />}
     </section>
   );
 }

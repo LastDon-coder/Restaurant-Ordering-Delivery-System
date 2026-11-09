@@ -6,6 +6,7 @@ export default function AdminNav() {
       <NavLink className="tab" to="/staff/orders">Orders</NavLink>
       <NavLink className="tab" to="/admin/menu">Menu</NavLink>
       <NavLink className="tab" to="/admin/delivery">Delivery</NavLink>
+      <NavLink className="tab" to="/staff/reviews">Reviews</NavLink>
       <NavLink className="tab" to="/admin/refunds">Refunds</NavLink>
       <NavLink className="tab" to="/admin/users">Users</NavLink>
     </nav>

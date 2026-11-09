@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatMoney } from '../utils/format';
+import FoodReviews from './FoodReviews';
+import { Stars } from './Stars';
 
-export default function FoodCard({ food }) {
+export default function FoodCard({ food, rating }) {
   const { user, role, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const [status, setStatus] = useState('idle'); // idle | adding | added
   const [error, setError] = useState('');
+  const [showReviews, setShowReviews] = useState(false);
 
   // Reset the "Added" tick after a moment.
   useEffect(() => {
@@ -55,6 +58,16 @@ export default function FoodCard({ food }) {
       <div className="card-body">
         <h3>{food.food_name}</h3>
         {food.description && <p className="muted">{food.description}</p>}
+        {rating?.count > 0 && (
+          <p className="rating-line">
+            <Stars value={rating.avg} label={`${rating.avg} out of 5 stars from ${rating.count} reviews`} />
+            <strong>{rating.avg.toFixed(1)}</strong>
+            <button type="button" className="text-link" aria-expanded={showReviews} onClick={() => setShowReviews((s) => !s)}>
+              {rating.count} review{rating.count > 1 ? 's' : ''} {showReviews ? '(hide)' : ''}
+            </button>
+          </p>
+        )}
+        {showReviews && <FoodReviews foodId={food.id} />}
         <div className="card-footer">
           <p className="price">{formatMoney(food.price)}</p>
           {action}

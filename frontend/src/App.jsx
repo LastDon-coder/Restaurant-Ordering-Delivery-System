@@ -5,6 +5,7 @@ import AdminMenuPage from './pages/AdminMenuPage';
 import AdminRefundsPage from './pages/AdminRefundsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminDeliveryPage from './pages/AdminDeliveryPage';
+import ReviewsPage from './pages/ReviewsPage';
 import SetPasswordPage from './pages/SetPasswordPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -39,6 +40,7 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute roles={['staff', 'admin']} />}>
           <Route path="staff/orders" element={<StaffOrdersPage />} />
+          <Route path="staff/reviews" element={<ReviewsPage />} />
         </Route>
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route path="admin/menu" element={<AdminMenuPage />} />
