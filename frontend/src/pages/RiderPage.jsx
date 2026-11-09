@@ -35,6 +35,7 @@ function Job({ job, onChanged }) {
       </div>
       <p>{job.customer.name}{job.customer.phone && <> · <a href={`tel:${job.customer.phone}`}>{job.customer.phone}</a></>}</p>
       <p className="small">{a.street_address}, {a.city}, {a.state}{a.landmark ? ` (${a.landmark})` : ''}</p>
+      <p className="small">Area: <strong>{job.zone_name ?? 'Other area'}</strong> · Delivery fee {formatMoney(job.delivery_fee)}</p>
       <p className="muted small">{job.items.map((i) => `${i.quantity}× ${i.food_name}`).join(', ')}</p>
       <p>{cod ? <strong>Collect {formatMoney(job.total_amount)} in cash</strong> : <span className="muted">Already paid ({formatMoney(job.total_amount)})</span>}</p>
       {notReady && <p className="muted small">Kitchen status: {statusLabel(job.order_status)}. You can pick up once it is Ready for delivery.</p>}
