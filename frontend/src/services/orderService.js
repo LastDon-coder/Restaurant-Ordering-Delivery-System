@@ -46,7 +46,7 @@ export async function listStaffOrders(statuses) {
   let q = supabase
     .from('orders')
     .select(
-      'id, order_status, total_amount, created_at, delivery_street_address, delivery_city, delivery_state, delivery_landmark, ' +
+      'id, order_status, total_amount, delivery_fee, created_at, delivery_street_address, delivery_city, delivery_state, delivery_landmark, delivery_zone_name, ' +
         'profiles(first_name, last_name, phone), order_items(id, food_name, quantity), ' +
         'payments(payment_method, payment_status), deliveries(rider_id, delivery_status)',
     )

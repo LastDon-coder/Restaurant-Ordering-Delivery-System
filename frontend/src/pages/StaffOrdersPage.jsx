@@ -68,6 +68,7 @@ function OrderRow({ order, riders, onChanged }) {
         {order.delivery_street_address}, {order.delivery_city}, {order.delivery_state}
         {order.delivery_landmark ? ` (${order.delivery_landmark})` : ''}
       </p>
+      <p className="small">Area: <strong>{order.delivery_zone_name ?? 'Other area'}</strong> · Delivery fee {formatMoney(order.delivery_fee)}</p>
       <p>
         <strong>{formatMoney(order.total_amount)}</strong>
         {pay && (
