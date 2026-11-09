@@ -23,3 +23,8 @@ export async function openAs(browser, role) {
 export function amounts(text) {
   return [...String(text).matchAll(/\d[\d,]*\.\d{2}/g)].map((m) => Number(m[0].replace(/,/g, '')));
 }
+
+// The order card whose heading is exactly "Order #<id>". (Matching on the card's text is unsafe: the id and the date
+// sit side by side with no space, so "Order #46" + "11/10/2026" reads as "Order #4611/10/2026".)
+export const orderCard = (page, id) =>
+  page.locator('.order-card').filter({ has: page.getByText(`Order #${id}`, { exact: true }) });

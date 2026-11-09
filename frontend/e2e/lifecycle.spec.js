@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { amounts, openAs } from './helpers.js';
+import { amounts, openAs, orderCard } from './helpers.js';
 
 // One whole journey on the LIVE project, with the four e2e accounts:
 //   admin adds a delivery area -> customer orders (cash on delivery) into it -> staff confirm, prepare, mark ready,
@@ -95,7 +95,7 @@ test('customer orders into that area (cash on delivery)', async () => {
 test('staff confirm, prepare, mark ready and assign the rider', async () => {
   const { page } = people.staff;
   await page.goto('/staff/orders');
-  const card = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}(?!\\d)`) });
+  const card = orderCard(page, s.orderId);
   await expect(card).toBeVisible();
   await expect(card).toContainText(ZONE); // the area is shown on the staff card
   // Each click re-renders the card with the new status, so wait for the status bar before the next step.
@@ -115,7 +115,7 @@ test('staff confirm, prepare, mark ready and assign the rider', async () => {
 test('rider picks up and delivers', async () => {
   const { page } = people.rider;
   await page.goto('/rider');
-  const job = page.locator('.order-card', { hasText: new RegExp(`Order #${s.orderId}(?!\\d)`) });
+  const job = orderCard(page, s.orderId);
   await expect(job).toBeVisible();
   await expect(job).toContainText(ZONE); // the area is shown on the rider card
   await job.getByRole('button', { name: 'Picked up' }).click();
