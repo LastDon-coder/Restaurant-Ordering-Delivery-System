@@ -77,7 +77,7 @@ export default function OrderPage() {
       </ul>
       <dl className="summary">
         <div><dt>Subtotal</dt><dd>{formatMoney(order.subtotal)}</dd></div>
-        <div><dt>Delivery fee</dt><dd>{formatMoney(order.delivery_fee)}</dd></div>
+        <div><dt>Delivery fee{order.delivery_zone_name ? ` (${order.delivery_zone_name})` : ''}</dt><dd>{formatMoney(order.delivery_fee)}</dd></div>
         <div className="summary-total"><dt>Total</dt><dd>{formatMoney(order.total_amount)}</dd></div>
       </dl>
       <p className="muted">Deliver to: {order.delivery_street_address}, {order.delivery_city}, {order.delivery_state}{order.delivery_landmark ? ` (${order.delivery_landmark})` : ''}</p>

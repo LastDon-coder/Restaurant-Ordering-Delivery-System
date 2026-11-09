@@ -5,6 +5,7 @@ export default function AdminNav() {
     <nav className="tabs" aria-label="Admin">
       <NavLink className="tab" to="/staff/orders">Orders</NavLink>
       <NavLink className="tab" to="/admin/menu">Menu</NavLink>
+      <NavLink className="tab" to="/admin/delivery">Delivery</NavLink>
       <NavLink className="tab" to="/admin/refunds">Refunds</NavLink>
       <NavLink className="tab" to="/admin/users">Users</NavLink>
     </nav>

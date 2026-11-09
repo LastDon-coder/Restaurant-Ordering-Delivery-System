@@ -96,7 +96,7 @@ export default function CartPage() {
           <dd>{formatMoney(summary.subtotal)}</dd>
         </div>
         <div>
-          <dt>Delivery fee</dt>
+          <dt>Delivery from</dt>
           <dd>{formatMoney(summary.delivery_fee)}</dd>
         </div>
         <div className="summary-total">
@@ -104,7 +104,7 @@ export default function CartPage() {
           <dd>{formatMoney(summary.total)}</dd>
         </div>
       </dl>
-      <p className="muted small">Prices are confirmed again when you place the order.</p>
+      <p className="muted small">The delivery fee depends on your area and is confirmed at checkout. Prices are confirmed again when you place the order.</p>
       {unavailable.length > 0 ? (
         <button type="button" className="btn" disabled>Checkout</button>
       ) : (

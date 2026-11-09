@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { useCart } from '../context/CartContext';
 import { initializePayment } from '../services/paymentService';
+import { getDeliveryQuote, listZones } from '../services/cartService';
 import { placeOrder } from '../services/orderService';
 import { friendlyDbError } from '../utils/errors';
 import { formatMoney } from '../utils/format';
@@ -17,6 +18,31 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [zones, setZones] = useState([]);
+  const [zonesState, setZonesState] = useState('loading'); // loading | ready | error
+  const [zoneId, setZoneId] = useState('');                // '' = other area (standard fee)
+  const [quote, setQuote] = useState(null);                // the server's price for the chosen area
+  const [quoteError, setQuoteError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    listZones()
+      .then((z) => { if (!cancelled) { setZones(z); setZonesState('ready'); } })
+      .catch((e) => { console.error(e); if (!cancelled) setZonesState('error'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Ask the server what the delivery will cost for this area (also re-runs if the cart changes).
+  const cartTotal = cart.summary.total;
+  useEffect(() => {
+    if (cart.items.length === 0) return undefined;
+    let cancelled = false;
+    setQuoteError('');
+    getDeliveryQuote(zoneId ? Number(zoneId) : null)
+      .then((q) => { if (!cancelled) setQuote(q); })
+      .catch((e) => { console.error(e); if (!cancelled) { setQuote(null); setQuoteError(friendlyDbError(e)); } });
+    return () => { cancelled = true; };
+  }, [zoneId, cartTotal, cart.items.length]);
 
   if (loading && cart.items.length === 0) return <Loading label="Loading your cart…" />;
   if (loadError) return <ErrorMessage message={loadError} onRetry={refresh} />;
@@ -46,7 +72,7 @@ export default function CheckoutPage() {
     setBusy(true);
     let orderId;
     try {
-      orderId = await placeOrder(form, method);
+      orderId = await placeOrder(form, method, zoneId ? Number(zoneId) : null);
     } catch (err) {
       console.error(err);
       setFormError(friendlyDbError(err));
@@ -70,7 +96,8 @@ export default function CheckoutPage() {
     navigate(`/orders/${orderId}`, { replace: true });
   }
 
-  const { summary } = cart;
+  // Show the server's quote for the chosen area; until it arrives, fall back to the cart's standard-fee summary.
+  const summary = quote?.delivery_fee != null ? { ...cart.summary, delivery_fee: quote.delivery_fee, total: quote.total } : cart.summary;
   return (
     <section>
       <h1>Checkout</h1>
@@ -92,6 +119,18 @@ export default function CheckoutPage() {
           </label>
         ))}
 
+        <h2>Delivery area</h2>
+        {zonesState === 'error' && <p className="form-error" role="alert">Could not load delivery areas. You can still order and pay the standard delivery fee.</p>}
+        <label>
+          Area
+          <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} disabled={zonesState === 'loading'}>
+            <option value="">{zonesState === 'loading' ? 'Loading areas…' : 'Other area (standard fee)'}</option>
+            {zones.map((z) => (
+              <option key={z.id} value={z.id}>{z.zone_name}{Number(z.extra_fee) > 0 ? ` (+${formatMoney(z.extra_fee)})` : ''}</option>
+            ))}
+          </select>
+        </label>
+
         <h2>Payment</h2>
         <label className="radio"><input type="radio" name="method" checked={method === 'online'} onChange={() => setMethod('online')} /> Pay online (card, bank, USSD)</label>
         <label className="radio"><input type="radio" name="method" checked={method === 'cash_on_delivery'} onChange={() => setMethod('cash_on_delivery')} /> Cash on delivery</label>
@@ -101,8 +140,9 @@ export default function CheckoutPage() {
           <div><dt>Delivery fee</dt><dd>{formatMoney(summary.delivery_fee)}</dd></div>
           <div className="summary-total"><dt>Total</dt><dd>{formatMoney(summary.total)}</dd></div>
         </dl>
+        {quoteError && <p className="form-error" role="alert">{quoteError}</p>}
         <p className="muted small">The final amount is calculated again by the server when you place the order.</p>
-        <button className="btn" type="submit" disabled={busy || blocked}>
+        <button className="btn" type="submit" disabled={busy || blocked || !!quoteError}>
           {busy ? 'Placing order…' : method === 'online' ? 'Place order & pay' : 'Place order'}
         </button>
       </form>

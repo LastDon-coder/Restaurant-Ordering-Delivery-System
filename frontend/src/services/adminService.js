@@ -73,3 +73,31 @@ export const inviteUser = (values) => callFunction('invite-user', values);
 
 // Re-send the invite email to someone who has not accepted yet (the function refuses anyone who has).
 export const resendInvite = (userId) => callFunction('invite-user', { action: 'resend', user_id: userId });
+
+// ---------- delivery fee and zones ----------
+// Final fee = base fee + the extra charge of the zone the customer picks. The database calculates it; here the
+// admin only edits the base fee and the zones. Row Level Security limits writes to admins.
+export async function getBaseFee() {
+  const { data, error } = await supabase.rpc('get_delivery_settings');
+  if (error) throw error;
+  return data.base_fee; // string like "2000.00"
+}
+export async function setBaseFee(fee) {
+  const { data, error } = await supabase.rpc('admin_set_delivery_fee', { p_fee: fee });
+  if (error) throw error;
+  return data.base_fee;
+}
+export async function adminZones() {
+  const { data, error } = await supabase.from('delivery_zones').select('id, zone_name, extra_fee, is_active').order('zone_name');
+  if (error) throw error;
+  return data;
+}
+export async function saveZone(id, values) {
+  const q = id ? supabase.from('delivery_zones').update(values).eq('id', id) : supabase.from('delivery_zones').insert(values);
+  const { error } = await q;
+  if (error) throw error;
+}
+export async function deleteZone(id) {
+  const { error } = await supabase.from('delivery_zones').delete().eq('id', id);
+  if (error) throw error;
+}

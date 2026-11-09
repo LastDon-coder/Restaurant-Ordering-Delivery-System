@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminMenuPage from './pages/AdminMenuPage';
 import AdminRefundsPage from './pages/AdminRefundsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminDeliveryPage from './pages/AdminDeliveryPage';
 import SetPasswordPage from './pages/SetPasswordPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -41,6 +42,7 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route path="admin/menu" element={<AdminMenuPage />} />
+          <Route path="admin/delivery" element={<AdminDeliveryPage />} />
           <Route path="admin/refunds" element={<AdminRefundsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
         </Route>

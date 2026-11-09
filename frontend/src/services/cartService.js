@@ -25,3 +25,16 @@ export async function removeItem(itemId) {
   const { error } = await supabase.from('cart_items').delete().eq('id', itemId);
   if (error) throw error;
 }
+
+// Delivery areas the customer can pick (RLS only returns active ones) and the server's price for the chosen one.
+export async function listZones() {
+  const { data, error } = await supabase.from('delivery_zones').select('id, zone_name, extra_fee').eq('is_active', true).order('zone_name');
+  if (error) throw error;
+  return data;
+}
+
+export async function getDeliveryQuote(zoneId) {
+  const { data, error } = await supabase.rpc('delivery_quote', { p_zone_id: zoneId ?? null });
+  if (error) throw error;
+  return data; // { subtotal, delivery_fee, total, zone_name }
+}
