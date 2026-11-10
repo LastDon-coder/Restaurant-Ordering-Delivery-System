@@ -1,6 +1,6 @@
 # Version 2 roadmap: multiple restaurants + live tracking
 
-Status: DRAFT for approval. Nothing here is built yet. Build order matters: each phase depends on the one before it.
+Status: DRAFT, decisions 1-3 confirmed by Andrew on 2026-11-10; the rest are proposed defaults. Nothing here is built yet. Build order matters: each phase depends on the one before it.
 We build one phase at a time, with a way to test it at the end of each (same as version 1).
 
 ## Goal
@@ -8,8 +8,8 @@ We build one phase at a time, with a way to test it at the end of each (same as 
 Turn the single-restaurant app into a platform where several restaurants each run their own menu, staff, orders and
 delivery pricing, and where customers can watch an order and its rider move in real time.
 
-Out of scope for v2 (decide later): mobile app, loyalty/promo codes, orders that mix several restaurants, restaurant
-self-signup with identity checks, automated bank payouts.
+Out of scope for v2 (decide later): mobile app, loyalty/promo codes, orders that mix several restaurants, identity/business
+verification beyond admin approval, automated bank payouts.
 
 ## Design decisions (proposed defaults, change any of them before Phase 1)
 
@@ -22,16 +22,22 @@ self-signup with identity checks, automated bank payouts.
 4. **Delivery pricing is per restaurant:** base fee and delivery areas move from `private.settings` and `delivery_zones` to
    each restaurant.
 5. **Riders are a platform-wide pool** that restaurants assign from (simple, and riders can serve several restaurants).
-   The alternative is riders per restaurant: say so before Phase 1 if you prefer it.
-6. **Money:** record each order's platform commission in a ledger first and pay restaurants out manually. Paystack split
+   Restaurant staff and managers assign a rider themselves. (Assumed, not yet confirmed: the alternative is riders per restaurant.)
+6. **Money (assumed, not yet confirmed):** record each order's platform commission in a ledger first and pay restaurants out manually. Paystack split
    payments (subaccounts) need business verification for every restaurant, so they come last and only if wanted.
 7. **URLs:** `/r/<slug>` for each restaurant (works with the current Vercel setup; subdomains can come later).
+9. **Restaurant self-signup with admin approval (confirmed).** A signed-in user submits a restaurant application; the
+   restaurant is created as `pending` and is invisible to customers. The platform admin receives an email, then approves
+   or rejects it (with a reason) from an approval queue. Only approved restaurants can take orders. The applicant is
+   emailed the decision. Abuse limits: verified email account, one pending application per user, field length limits.
 8. **Existing data:** v1 data becomes "Restaurant #1" in a backfill migration, so nothing is lost and old orders keep working.
 
 ## Biggest risks (and how the plan deals with them)
 
 - **Cross-restaurant data leaks** (staff of A reading orders of B). Every RLS policy and SQL function changes from "is staff"
   to "is a member of THIS restaurant". Phase 2 ends with a dedicated isolation test file that tries to break this.
+- **Fake or spam restaurant signups.** Approval is manual, applications are rate-limited, and a pending restaurant can do
+  nothing (no menu visible, no orders), so a bad application costs only an email to the admin.
 - **Breaking live v1 orders during the migration.** Migrations are additive first (nullable `restaurant_id`, backfill, then
   `NOT NULL`), and the v1 SQL and e2e tests must stay green after every phase.
 - **Web location limits.** A website can only share the rider's position while the rider's page is open and the screen is
@@ -45,7 +51,7 @@ self-signup with identity checks, automated bank payouts.
 ## Phases
 
 ### Phase 1: Tenancy foundation (database only, no visible change)
-- `restaurants` (name, slug, description, logo, phone, address, is_open, status active/suspended, base_delivery_fee, commission_percent).
+- `restaurants` (name, slug, description, logo, phone, address, is_open, status `pending | active | rejected | suspended`, review reason, base_delivery_fee, commission_percent).
 - `restaurant_members`, helper functions `private.is_member(restaurant_id)` and `private.can_manage(restaurant_id)`.
 - Add `restaurant_id` to `categories`, `food_items`, `delivery_zones`, `orders`, `carts`; create "Restaurant #1"; backfill; set `NOT NULL`.
 - Move the v1 staff users into `restaurant_members` for Restaurant #1.
@@ -63,7 +69,10 @@ self-signup with identity checks, automated bank payouts.
 
 ### Phase 4: Restaurant dashboards and onboarding
 - Staff/manager pages scope to their restaurant; owners manage menu, hours/open switch, delivery fee and areas, team.
-- Platform admin: create a restaurant, invite its owner by email, suspend a restaurant (hidden from customers, no new orders).
+- Restaurant signup: a signed-in user applies (`submit_restaurant_application`); the owner membership exists but grants nothing until approval.
+- Admin approval queue: approve or reject with a reason, suspend or reinstate; a new email kind `restaurant_pending` goes to
+  every active admin when an application arrives (through the existing notification outbox), and the applicant is emailed the decision.
+- Restaurant staff and managers assign riders from the platform pool.
 - Per-restaurant reviews moderation (restaurant manager) with platform admin override.
 
 ### Phase 5: Money
@@ -103,11 +112,11 @@ self-signup with identity checks, automated bank payouts.
 | Edit menu, fees, areas | no | no | no | own restaurant | all |
 | Moderate reviews | no | no | no | own restaurant | all |
 | Refunds | no | no | no | request | approve |
-| Create or suspend restaurants, manage platform users | no | no | no | no | yes |
+| Apply to open a restaurant | yes | no | no | no | n/a |
+| Approve, reject or suspend restaurants; manage platform users | no | no | no | no | yes |
 
 ## Questions to settle before Phase 1
 
-1. Who creates restaurants: only you as platform admin (recommended for v2), or restaurant self-signup?
-2. Riders: shared platform pool (proposed) or per restaurant?
-3. Money: manual payouts with a commission ledger (proposed), or Paystack split payments from the start?
-4. Is the drop-off pin on a map at checkout wanted, or text addresses only?
+Settled: restaurants sign up themselves and the admin approves them (admin is emailed); restaurants assign riders.
+Still assumed (tell me if wrong): shared rider pool; manual payouts with a commission ledger (Paystack split payments
+later); no drop-off map pin at checkout in v2 (text address plus the rider's live position only).
