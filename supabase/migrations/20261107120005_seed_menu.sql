@@ -1,4 +1,4 @@
--- 005: starter menu (same as the MySQL seed).
+-- 005: starter menu (ported from the original MySQL seed; see the legacy-express-mysql branch).
 insert into public.categories (category_name, description) values
   ('Rice Dishes', 'Jollof, fried rice and more'),
   ('Soups & Swallow', 'Traditional soups with your choice of swallow'),

@@ -1,8 +1,0 @@
-$kind: http-request
-name: 'Categories: list (public)'
-order: 10000
-method: GET
-url: '{{baseUrl}}/api/v1/categories'
-headers:
-  - key: Content-Type
-    value: application/json

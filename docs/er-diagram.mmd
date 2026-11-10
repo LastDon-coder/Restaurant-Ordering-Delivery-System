@@ -1,0 +1,156 @@
+erDiagram
+  AUTH_USERS ||--|| PROFILES : "login account has one profile"
+  PROFILES ||--o{ ADDRESSES : "saves"
+  PROFILES ||--o| CARTS : "has one open cart"
+  CARTS ||--o{ CART_ITEMS : contains
+  FOOD_ITEMS ||--o{ CART_ITEMS : "is in"
+  CATEGORIES ||--o{ FOOD_ITEMS : groups
+  PROFILES ||--o{ ORDERS : "places (customer)"
+  ADDRESSES ||--o{ ORDERS : "delivered to"
+  DELIVERY_ZONES |o--o{ ORDERS : "priced by"
+  ORDERS ||--|{ ORDER_ITEMS : contains
+  FOOD_ITEMS ||--o{ ORDER_ITEMS : "snapshot of"
+  ORDERS ||--|| PAYMENTS : "paid by"
+  PAYMENTS ||--o{ PAYMENT_ATTEMPTS : "Paystack references"
+  PAYMENTS ||--o{ PAYMENT_REFUNDS : "refunded by"
+  ORDERS ||--o| DELIVERIES : "delivered by"
+  PROFILES ||--o{ DELIVERIES : "rides (rider)"
+  ORDERS ||--o{ ORDER_STATUS_HISTORY : "audit trail"
+  ORDER_ITEMS ||--o| FOOD_REVIEWS : "reviewed once"
+  FOOD_ITEMS ||--o{ FOOD_REVIEWS : receives
+  PROFILES ||--o{ FOOD_REVIEWS : writes
+  ORDERS ||--o| ORDER_RATINGS : "rated once"
+  PROFILES ||--o{ ORDER_RATINGS : writes
+
+  PROFILES {
+    uuid id PK "same id as the login account"
+    text first_name
+    text last_name
+    text phone
+    app_role role "customer, admin, staff, rider"
+    boolean is_active
+  }
+  ADDRESSES {
+    bigint id PK
+    uuid user_id FK
+    text street_address
+    text city
+    text state
+    text landmark
+  }
+  CARTS {
+    bigint id PK
+    uuid user_id FK
+  }
+  CART_ITEMS {
+    bigint id PK
+    bigint cart_id FK
+    bigint food_id FK
+    int quantity
+  }
+  CATEGORIES {
+    bigint id PK
+    text category_name
+    text description
+    text image_url
+    category_status status
+  }
+  FOOD_ITEMS {
+    bigint id PK
+    bigint category_id FK
+    text food_name
+    text description
+    numeric price
+    text image_url
+    boolean is_available
+  }
+  DELIVERY_ZONES {
+    bigint id PK
+    text zone_name
+    numeric extra_fee
+    boolean is_active
+  }
+  ORDERS {
+    bigint id PK
+    uuid user_id FK
+    bigint address_id FK
+    bigint delivery_zone_id FK "set null if the zone is deleted"
+    order_status order_status
+    numeric subtotal
+    numeric delivery_fee "snapshot"
+    numeric discount
+    numeric total_amount
+    text delivery_zone_name "snapshot"
+    text delivery_street_address "snapshot"
+    text delivery_city "snapshot"
+    text delivery_state "snapshot"
+    text delivery_landmark "snapshot"
+  }
+  ORDER_ITEMS {
+    bigint id PK
+    bigint order_id FK
+    bigint food_id FK
+    text food_name "snapshot"
+    int quantity
+    numeric price "snapshot"
+    numeric subtotal
+  }
+  PAYMENTS {
+    bigint id PK
+    bigint order_id FK "unique"
+    payment_method payment_method "online, cash_on_delivery"
+    text transaction_reference
+    numeric amount
+    payment_status payment_status "pending, paid, failed, refunded"
+    timestamptz paid_at
+  }
+  PAYMENT_ATTEMPTS {
+    text reference PK
+    bigint payment_id FK
+  }
+  PAYMENT_REFUNDS {
+    bigint id PK
+    bigint payment_id FK
+    uuid requested_by FK
+    text transaction_reference
+    numeric amount
+    refund_status refund_status
+    text paystack_refund_id
+    text reason
+  }
+  DELIVERIES {
+    bigint id PK
+    bigint order_id FK "unique"
+    uuid rider_id FK
+    delivery_status delivery_status
+    timestamptz assigned_at
+    timestamptz picked_up_at
+    timestamptz delivered_at
+  }
+  ORDER_STATUS_HISTORY {
+    bigint id PK
+    bigint order_id FK
+    uuid changed_by FK
+    order_status from_status
+    order_status to_status
+    text reason
+  }
+  FOOD_REVIEWS {
+    bigint id PK
+    bigint order_item_id FK "unique"
+    bigint food_id FK
+    uuid user_id FK
+    uuid moderated_by FK
+    smallint rating
+    text comment
+    review_status status "pending, approved, hidden"
+    timestamptz moderated_at
+  }
+  ORDER_RATINGS {
+    bigint id PK
+    bigint order_id FK "unique"
+    uuid user_id FK
+    smallint rating
+    smallint delivery_rating
+    text comment
+  }
