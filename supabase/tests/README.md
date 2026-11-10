@@ -10,6 +10,9 @@ anything is public, privacy of order ratings, and that nobody can write the tabl
 `notifications.test.sql` (38 checks) covers the order emails: who is queued for which event, no duplicates, nothing for
 test addresses, locked-down queue access, and the sender's lease and retry rules. No real email is sent (it is rolled back).
 
+`tenancy_foundation.test.sql` (44 checks) covers version 2 Phase 1: the Restaurant #1 backfill, restaurant and team constraints,
+cross-restaurant foreign keys, the membership helper functions, who can see pending restaurants, and that v1 still works.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.

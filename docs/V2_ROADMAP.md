@@ -50,10 +50,10 @@ verification beyond admin approval, automated bank payouts.
 
 ## Phases
 
-### Phase 1: Tenancy foundation (database only, no visible change)
+### Phase 1: Tenancy foundation (database only, no visible change) - DONE 2026-11-11
 - `restaurants` (name, slug, description, logo, phone, address, is_open, status `pending | active | rejected | suspended`, review reason, base_delivery_fee, commission_percent).
 - `restaurant_members`, helper functions `private.is_member(restaurant_id)` and `private.can_manage(restaurant_id)`.
-- Add `restaurant_id` to `categories`, `food_items`, `delivery_zones`, `orders`, `carts`; create "Restaurant #1"; backfill; set `NOT NULL`.
+- Add `restaurant_id` (temporary `DEFAULT 1` keeps v1 working until Phase 2) to `categories`, `food_items`, `delivery_zones`, `orders`, `carts`; create "Restaurant #1"; backfill; set `NOT NULL`.
 - Move the v1 staff users into `restaurant_members` for Restaurant #1.
 - Test: v1 SQL tests still pass; new tests for the helpers and the backfill.
 

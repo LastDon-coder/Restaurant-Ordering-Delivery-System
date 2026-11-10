@@ -1,5 +1,12 @@
 erDiagram
   AUTH_USERS ||--|| PROFILES : "login account has one profile"
+  RESTAURANTS ||--o{ RESTAURANT_MEMBERS : "has team"
+  PROFILES ||--o{ RESTAURANT_MEMBERS : "works at"
+  RESTAURANTS ||--o{ CATEGORIES : owns
+  RESTAURANTS ||--o{ FOOD_ITEMS : owns
+  RESTAURANTS ||--o{ DELIVERY_ZONES : defines
+  RESTAURANTS ||--o{ ORDERS : receives
+  RESTAURANTS |o--o{ CARTS : "cart is for"
   PROFILES ||--o{ ADDRESSES : "saves"
   PROFILES ||--o| CARTS : "has one open cart"
   CARTS ||--o{ CART_ITEMS : contains
@@ -22,6 +29,21 @@ erDiagram
   ORDERS ||--o| ORDER_RATINGS : "rated once"
   PROFILES ||--o{ ORDER_RATINGS : writes
 
+  RESTAURANTS {
+    bigint id PK
+    text name
+    text slug "unique, used in the URL"
+    restaurant_status status "pending, active, rejected, suspended"
+    boolean is_open
+    numeric base_delivery_fee
+    numeric commission_percent
+    uuid created_by FK
+  }
+  RESTAURANT_MEMBERS {
+    bigint restaurant_id PK
+    uuid user_id PK
+    restaurant_member_role member_role "owner, manager, staff"
+  }
   PROFILES {
     uuid id PK "same id as the login account"
     text first_name
@@ -40,6 +62,7 @@ erDiagram
   }
   CARTS {
     bigint id PK
+    bigint restaurant_id FK
     uuid user_id FK
   }
   CART_ITEMS {
@@ -50,6 +73,7 @@ erDiagram
   }
   CATEGORIES {
     bigint id PK
+    bigint restaurant_id FK
     text category_name
     text description
     text image_url
@@ -57,6 +81,7 @@ erDiagram
   }
   FOOD_ITEMS {
     bigint id PK
+    bigint restaurant_id FK
     bigint category_id FK
     text food_name
     text description
@@ -66,12 +91,14 @@ erDiagram
   }
   DELIVERY_ZONES {
     bigint id PK
+    bigint restaurant_id FK
     text zone_name
     numeric extra_fee
     boolean is_active
   }
   ORDERS {
     bigint id PK
+    bigint restaurant_id FK
     uuid user_id FK
     bigint address_id FK
     bigint delivery_zone_id FK "set null if the zone is deleted"

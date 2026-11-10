@@ -17,4 +17,7 @@ Not drawn: `created_at` / `updated_at` columns, and the `private` schema (`priva
 - **`payments`, `deliveries`, `order_ratings` are 1:1 with `orders`** (UNIQUE `order_id`); `food_reviews` is 1:1 with `order_items`.
 - **`order_status_history`** records every status change and who made it.
 - **`payment_attempts`** maps each Paystack reference back to its payment, so retries and webhooks match the right order.
+- **Version 2 tenancy (Phase 1):** `restaurants` and `restaurant_members` exist, and menu, zones, orders and carts carry `restaurant_id`.
+  Composite foreign keys keep food inside its own restaurant's categories and orders inside their own restaurant's areas.
+  Existing data belongs to Restaurant #1. The rules are not enforced per restaurant yet (Phase 2).
 - **`orders.delivery_zone_id` is `ON DELETE SET NULL`**: a zone can be deleted while old orders keep its name and fee.
