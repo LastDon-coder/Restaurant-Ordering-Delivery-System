@@ -39,6 +39,24 @@ Authentication -> URL Configuration -> Redirect URLs**. Supabase's built-in emai
 `POST /functions/v1/invite-user` with `{ "action": "resend", "user_id": "<uuid>" }` re-sends the invite. It only works for
 someone who was invited and has never signed in (the Users list marks them "Invite pending"); anyone else gets a 409.
 
+## notify (order emails through Resend)
+
+The database writes a row to `private.notification_outbox` in the same transaction as the order change (so an email exists
+only if the change committed). `notify` sends the waiting rows through Resend. Who gets what: the customer (order received,
+confirmed, preparing, out for delivery), staff and admins (new order, once a cash order is placed or an online payment is
+confirmed) and the rider (a delivery was assigned). Orders from test addresses (`@example.com` etc.) send nothing.
+
+`POST /functions/v1/notify` takes no input and no login (`verify_jwt` is off): it only sends mail that is already due.
+It is woken by the database right after an order event (pg_net) and every minute by pg_cron while anything waits, so a
+failed send is retried (2, 4, 6, 8 minutes, then marked `failed`). Resend gets an `Idempotency-Key` so a retry never double-sends.
+
+Secrets (Supabase dashboard -> Edge Functions -> Secrets): `RESEND_API_KEY`, `MAIL_FROM` (for example
+`Restaurant <orders@yourdomain.com>`; the domain must be verified in Resend). Optional: `SITE_URL`, `RESTAURANT_NAME`.
+Until the secrets exist the function answers 503 and emails simply wait in the queue.
+
+Look at the queue (SQL editor): `select id, kind, to_email, status, attempts, last_error from private.notification_outbox order by id desc limit 20;`
+Re-queue failed ones after fixing a problem: `update private.notification_outbox set status='pending', attempts=0, send_after=now() where status='failed';`
+
 ## Production addresses (after deploying the frontend)
 
 `ALLOWED_ORIGIN` accepts several site addresses separated by commas, for example
