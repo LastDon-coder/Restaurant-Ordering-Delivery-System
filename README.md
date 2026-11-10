@@ -75,4 +75,4 @@ The database is the hosted Supabase project; the migrations in `supabase/migrati
 ## Still to do before real customers
 
 Paystack live keys and webhook, a custom SMTP sender for Supabase Auth emails, a verified Resend sending domain,
-a custom domain, and leaked-password protection (Supabase Auth settings).
+a custom domain (then update the address in `frontend/public/sitemap.xml` and `robots.txt`), and leaked-password protection (Supabase Auth settings).

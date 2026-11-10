@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+# Pages that need a login or are for staff: no reason for search engines to visit them.
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /payment/
+Disallow: /staff/
+Disallow: /admin/
+Disallow: /rider
+Disallow: /set-password
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://restaurant-ordering-delivery.vercel.app/sitemap.xml

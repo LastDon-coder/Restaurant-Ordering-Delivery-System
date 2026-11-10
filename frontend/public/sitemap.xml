@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Only public pages belong here. Cart, checkout, orders, staff, rider and admin pages need a login and are left out on purpose. -->
+<!-- When you add a custom domain, replace https://restaurant-ordering-delivery.vercel.app below (and in robots.txt). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://restaurant-ordering-delivery.vercel.app/</loc>
+    <lastmod>2026-11-10</lastmod>
+  </url>
+  <url>
+    <loc>https://restaurant-ordering-delivery.vercel.app/login</loc>
+  </url>
+  <url>
+    <loc>https://restaurant-ordering-delivery.vercel.app/register</loc>
+  </url>
+</urlset>
