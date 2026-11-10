@@ -1,10 +1,12 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useCanonical } from '../hooks/useCanonical';
 
 export default function Layout() {
   const { user, profile, role, loading, signOut } = useAuth();
   const { count } = useCart();
+  useCanonical();
 
   return (
     <>
