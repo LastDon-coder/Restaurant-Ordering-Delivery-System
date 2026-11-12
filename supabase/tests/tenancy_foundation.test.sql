@@ -56,6 +56,7 @@ begin
   insert into public.restaurants (name, slug, status, created_by) values ('Beta Kitchen', 'beta-kitchen', 'active', ow) returning id into rb;
   insert into public.restaurants (name, slug, status, created_by) values ('Pending Place', 'pending-place', 'pending', ap) returning id into rc;
   insert into public.restaurant_members values (rb, ow, 'owner'), (rb, mg, 'manager'), (rb, sf, 'staff'), (rb, si, 'staff'), (rc, cm, 'owner');
+  insert into public.restaurant_members values (1, sf, 'staff');   -- v1 staff of Restaurant #1 (rights now come from membership)
   r := r || pg_temp.m('default status of a new restaurant is pending', (select status from public.restaurants where slug = 'pending-place') = 'pending');
   r := r || pg_temp.expect('one role per person per restaurant', format('insert into public.restaurant_members values (%s, %L, %L)', rb, mg, 'staff'), '23505');
 
