@@ -60,10 +60,10 @@ begin
   r := r || pg_temp.expect('one role per person per restaurant', format('insert into public.restaurant_members values (%s, %L, %L)', rb, mg, 'staff'), '23505');
 
   insert into public.categories (category_name, restaurant_id) values ('T-Cat Beta', rb) returning id into catb;
-  insert into public.categories (category_name) values ('T-Cat One') returning id into cat1;
-  r := r || pg_temp.m('a category added without a restaurant lands in Restaurant #1 (temporary v1 default)', (select restaurant_id from public.categories where id = cat1) = 1);
+  insert into public.categories (category_name, restaurant_id) values ('T-Cat One', 1) returning id into cat1;
+  r := r || pg_temp.m('a category stored in Restaurant #1 reads back with restaurant_id 1', (select restaurant_id from public.categories where id = cat1) = 1);
   insert into public.food_items (category_id, food_name, price, restaurant_id) values (catb, 'T-Food Beta', 700, rb) returning id into fb;
-  insert into public.food_items (category_id, food_name, price) values (cat1, 'T-Food One', 1000) returning id into f1;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat1, 'T-Food One', 1000, 1) returning id into f1;
   r := r || pg_temp.expect('food cannot use another restaurant''s category (composite FK)',
     format('insert into public.food_items (category_id, food_name, price, restaurant_id) values (%s, %L, 1, %s)', cat1, 'T-Bad', rb), '23503');
   r := r || pg_temp.expect('food cannot be moved to another restaurant while in its category',
@@ -71,7 +71,7 @@ begin
   r := r || pg_temp.expect('a category name is unique inside a restaurant', format('insert into public.categories (category_name, restaurant_id) values (%L, %s)', 't-cat beta ', rb), '23505');
 
   insert into public.delivery_zones (zone_name, extra_fee, restaurant_id) values ('T-Zone Beta', 100, rb) returning id into zb;
-  insert into public.delivery_zones (zone_name, extra_fee) values ('T-Zone One', 300) returning id into z1;
+  insert into public.delivery_zones (zone_name, extra_fee, restaurant_id) values ('T-Zone One', 300, 1) returning id into z1;
 
   ---------- the v1 flow still works, and orders are stamped with Restaurant #1 ----------
   perform pg_temp.as_user(cu);

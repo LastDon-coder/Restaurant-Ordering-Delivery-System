@@ -34,12 +34,13 @@ begin
     (ad, 't-ad@example.com', 'authenticated', 'authenticated', '{"first_name":"A","last_name":"Dmin"}'),
     (evil,'t-evil@example.com','authenticated','authenticated','{"first_name":"E","last_name":"Vil","role":"admin"}');
   update public.profiles set role = 'staff' where id = st;
+  insert into public.restaurant_members (restaurant_id, user_id, member_role) values (1, st, 'staff');
   update public.profiles set role = 'rider' where id in (rd, rd2);
   update public.profiles set role = 'admin' where id = ad;
-  insert into public.categories (category_name) values ('T-Cat') returning id into cat;
-  insert into public.food_items (category_id, food_name, price) values (cat, 'T-Food1', 1000.00) returning id into f1;
-  insert into public.food_items (category_id, food_name, price) values (cat, 'T-Food2', 250.50) returning id into f2;
-  insert into public.food_items (category_id, food_name, price, is_available) values (cat, 'T-SoldOut', 10, false) returning id into fx;
+  insert into public.categories (category_name, restaurant_id) values ('T-Cat', 1) returning id into cat;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat, 'T-Food1', 1000.00, 1) returning id into f1;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat, 'T-Food2', 250.50, 1) returning id into f2;
+  insert into public.food_items (category_id, food_name, price, is_available, restaurant_id) values (cat, 'T-SoldOut', 10, false, 1) returning id into fx;
 
   ---------- sign-up and role safety ----------
   r := r || pg_temp.m('sign-up claiming role=admin still becomes customer', (select role from public.profiles where id = evil) = 'customer');
@@ -168,9 +169,9 @@ begin
 
   ---------- delivery zones: fee = base + zone extra, all server-side ----------
   perform pg_temp.as_user(ad);
-  insert into public.delivery_zones (zone_name, extra_fee) values ('T-Near', 0) returning id into zn;
-  insert into public.delivery_zones (zone_name, extra_fee) values ('T-Far', 1500) returning id into zf;
-  insert into public.delivery_zones (zone_name, extra_fee, is_active) values ('T-Closed', 300, false) returning id into zc;
+  insert into public.delivery_zones (zone_name, extra_fee, restaurant_id) values ('T-Near', 0, 1) returning id into zn;
+  insert into public.delivery_zones (zone_name, extra_fee, restaurant_id) values ('T-Far', 1500, 1) returning id into zf;
+  insert into public.delivery_zones (zone_name, extra_fee, is_active, restaurant_id) values ('T-Closed', 300, false, 1) returning id into zc;
   r := r || pg_temp.expect('zone names are unique ignoring case', 'insert into public.delivery_zones (zone_name) values (''t-far'')', '23505');
   r := r || pg_temp.expect('negative zone fee rejected', 'insert into public.delivery_zones (zone_name, extra_fee) values (''T-Neg'', -1)', '23514');
   r := r || pg_temp.m('admin sees inactive zones', exists (select 1 from public.delivery_zones where id = zc));

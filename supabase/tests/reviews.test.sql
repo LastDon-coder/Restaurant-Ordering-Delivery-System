@@ -26,11 +26,12 @@ begin
     (rd, 'r-rd@example.com', 'authenticated', 'authenticated', '{"first_name":"R","last_name":"D"}'),
     (ad, 'r-ad@example.com', 'authenticated', 'authenticated', '{"first_name":"A","last_name":"D"}');
   update public.profiles set role = 'staff' where id = st;
+  insert into public.restaurant_members (restaurant_id, user_id, member_role) values (1, st, 'staff');
   update public.profiles set role = 'rider' where id = rd;
   update public.profiles set role = 'admin' where id = ad;
-  insert into public.categories (category_name) values ('R-Cat') returning id into cat;
-  insert into public.food_items (category_id, food_name, price) values (cat, 'R-Food1', 1000) returning id into f1;
-  insert into public.food_items (category_id, food_name, price) values (cat, 'R-Food2', 500) returning id into f2;
+  insert into public.categories (category_name, restaurant_id) values ('R-Cat', 1) returning id into cat;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat, 'R-Food1', 1000, 1) returning id into f1;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat, 'R-Food2', 500, 1) returning id into f2;
 
   -- two orders for c1: one delivered (od, two items), one still pending (op)
   perform pg_temp.as_user(c1);

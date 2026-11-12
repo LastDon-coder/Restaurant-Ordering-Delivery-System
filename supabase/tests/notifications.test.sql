@@ -33,10 +33,12 @@ begin
     (rd2, 'n-rd2@notify-check.dev', 'authenticated', 'authenticated', '{"first_name":"Remi","last_name":"Rider"}'),
     (ad, 'n-ad@notify-check.dev', 'authenticated', 'authenticated', '{"first_name":"Ann","last_name":"Admin"}');
   update public.profiles set role = 'staff' where id = st;
+  insert into public.restaurant_members (restaurant_id, user_id, member_role) values (1, st, 'staff');
+  insert into public.restaurant_members (restaurant_id, user_id, member_role) values (1, ad, 'manager');
   update public.profiles set role = 'rider' where id in (rd, rd2);
   update public.profiles set role = 'admin' where id = ad;
-  insert into public.categories (category_name) values ('N-Cat') returning id into cat;
-  insert into public.food_items (category_id, food_name, price) values (cat, 'N-Food <b>', 1000) returning id into f1;
+  insert into public.categories (category_name, restaurant_id) values ('N-Cat', 1) returning id into cat;
+  insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat, 'N-Food <b>', 1000, 1) returning id into f1;
 
   ---------- the address filter ----------
   r := r || pg_temp.m('real address is deliverable', private.mail_ok('ada@gmail.com'));
@@ -50,7 +52,7 @@ begin
   oc := public.place_order('{"street_address":"1 Rd <script>","city":"PH","state":"Rivers"}'::jsonb, 'cash_on_delivery');
   perform pg_temp.as_su();
   r := r || pg_temp.m('cash order: customer gets "order received"', pg_temp.cnt(oc, 'order_received') = 1);
-  r := r || pg_temp.m('cash order: staff AND admin get "new order"', pg_temp.cnt(oc, 'new_order') = 2);
+  r := r || pg_temp.m('cash order: the restaurant team (staff + manager) gets "new order"', pg_temp.cnt(oc, 'new_order') = 2);
   r := r || pg_temp.m('cash order: no rider email yet', pg_temp.cnt(oc, 'rider_assigned') = 0);
   r := r || pg_temp.m('payload carries the items, total and address',
     (select payload->>'total' = '4000.00' and payload->'items'->0->>'quantity' = '2' and payload->>'address' like '1 Rd%'
