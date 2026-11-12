@@ -7,7 +7,7 @@ declare
   ad uuid := gen_random_uuid(); oa uuid := gen_random_uuid(); ma uuid := gen_random_uuid(); sa uuid := gen_random_uuid();
   ob uuid := gen_random_uuid(); mb uuid := gen_random_uuid(); sb uuid := gen_random_uuid();
   cu uuid := gen_random_uuid(); c2 uuid := gen_random_uuid(); rd uuid := gen_random_uuid(); rd2 uuid := gen_random_uuid();
-  ls uuid := gen_random_uuid(); sp uuid := gen_random_uuid(); ap uuid := gen_random_uuid();
+  x1 uuid := gen_random_uuid(); x2 uuid := gen_random_uuid(); ls uuid := gen_random_uuid(); sp uuid := gen_random_uuid(); ap uuid := gen_random_uuid();
   ra bigint; rb bigint; rp bigint; ca bigint; cb bigint; fa bigint; fb bigint; fp bigint; cp bigint; za bigint; zb bigint;
   o_a bigint; o_b bigint; oi_a bigint; rv bigint; n int; fails int; v jsonb;
 begin
@@ -30,7 +30,7 @@ begin
   select t.u, 'x-' || left(t.u::text, 8) || '@notify-check.dev', 'authenticated', 'authenticated',
          json_build_object('first_name', t.nm, 'last_name', 'T')::jsonb
   from (values (ad,'Ann'),(oa,'OwnA'),(ma,'MgrA'),(sa,'StaffA'),(ob,'OwnB'),(mb,'MgrB'),(sb,'StaffB'),
-               (cu,'Cy'),(c2,'Dee'),(rd,'Rita'),(rd2,'Remi'),(ls,'Lone'),(sp,'Sus'),(ap,'Abe')) t(u, nm);
+               (cu,'Cy'),(c2,'Dee'),(rd,'Rita'),(rd2,'Remi'),(ls,'Lone'),(sp,'Sus'),(ap,'Abe'),(x1,'Xia'),(x2,'Xan')) t(u, nm);
   update public.profiles set role = 'admin' where id = ad;
   update public.profiles set role = 'staff' where id in (oa, ma, sa, ob, mb, sb, ls);   -- ls = "staff" label but on NO team
   update public.profiles set role = 'rider' where id in (rd, rd2);
@@ -182,6 +182,35 @@ begin
   r := r || pg_temp.expect('refunds still need an admin (manager cannot reserve one)', format('select public.pay_reserve_refund(%L, %s, %L)', ma, o_a, 'x'), '42501');
 
   ---------- people without a team ----------
+  ---------- team management: each restaurant only manages its own team ----------
+  perform pg_temp.as_user(sa);
+  r := r || pg_temp.expect('staff A cannot add anyone to A (staff cannot add team members)', format('select public.add_restaurant_member(%s, %L, %L)', ra, sp, 'staff'), '42501');
+  r := r || pg_temp.expect('staff A cannot add anyone to B', format('select public.add_restaurant_member(%s, %L, %L)', rb, sp, 'staff'), '42501');
+  perform pg_temp.as_user(sb);
+  r := r || pg_temp.expect('staff B cannot add anyone to B', format('select public.add_restaurant_member(%s, %L, %L)', rb, sp, 'staff'), '42501');
+  perform pg_temp.as_user(ma);
+  r := r || pg_temp.expect('manager A cannot add to B', format('select public.add_restaurant_member(%s, %L, %L)', rb, sp, 'staff'), '42501');
+  r := r || pg_temp.expect('manager A cannot appoint a manager', format('select public.add_restaurant_member(%s, %L, %L)', ra, sp, 'manager'), '42501');
+  r := r || pg_temp.expect('manager A cannot appoint an owner', format('select public.add_restaurant_member(%s, %L, %L)', ra, sp, 'owner'), '42501');
+  r := r || pg_temp.expect('manager A cannot add a rider to a team', format('select public.add_restaurant_member(%s, %L, %L)', ra, rd2, 'staff'), '22023');
+  r := r || pg_temp.expect('manager A can add a staff member to A', format('select public.add_restaurant_member(%s, %L, %L)', ra, sp, 'staff'), 'ok');
+  r := r || pg_temp.expect('...adding the same person again is refused', format('select public.add_restaurant_member(%s, %L, %L)', ra, sp, 'staff'), '55000');
+  perform pg_temp.as_user(sp);
+  r := r || pg_temp.m('...the new member is on team A and not on team B', private.is_member(ra) and not private.is_member(rb));
+  perform pg_temp.as_user(mb);
+  r := r || pg_temp.expect('manager B cannot add to A', format('select public.add_restaurant_member(%s, %L, %L)', ra, x1, 'staff'), '42501');
+  perform pg_temp.as_user(oa);
+  r := r || pg_temp.expect('owner A cannot add to B', format('select public.add_restaurant_member(%s, %L, %L)', rb, x1, 'staff'), '42501');
+  r := r || pg_temp.expect('owner A cannot appoint an owner', format('select public.add_restaurant_member(%s, %L, %L)', ra, x1, 'owner'), '42501');
+  r := r || pg_temp.expect('owner A can appoint a manager of A', format('select public.add_restaurant_member(%s, %L, %L)', ra, x1, 'manager'), 'ok');
+  r := r || pg_temp.expect('direct inserts into the team table stay admin-only', format('insert into public.restaurant_members values (%s, %L, %L)', ra, x2, 'staff'), '42501');
+  perform pg_temp.as_user(ob);
+  r := r || pg_temp.expect('owner B can add staff to B', format('select public.add_restaurant_member(%s, %L, %L)', rb, x2, 'staff'), 'ok');
+  perform pg_temp.as_user(ad);
+  r := r || pg_temp.expect('platform admin can appoint an owner', format('select public.add_restaurant_member(%s, %L, %L)', rb, x1, 'owner'), 'ok');
+  perform pg_temp.as_anon();
+  r := r || pg_temp.expect('anonymous cannot call it', format('select public.add_restaurant_member(%s, %L, %L)', ra, x1, 'staff'), '42501');
+
   perform pg_temp.as_user(ls);
   r := r || pg_temp.m('a user labelled "staff" but on no team sees no orders', not exists (select 1 from public.orders));
   r := r || pg_temp.expect('...cannot change an order', format('select public.change_order_status(%s, %L)', o_b, 'confirmed'), 'P0002');
