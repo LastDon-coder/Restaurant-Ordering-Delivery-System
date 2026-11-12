@@ -199,7 +199,7 @@ begin
   r := r || pg_temp.m('anonymous sees food of active restaurants, not of the pending one',
     exists (select 1 from public.food_items where id = fa) and not exists (select 1 from public.food_items where id = fp)
     and not exists (select 1 from public.categories where id = cp));
-  r := r || pg_temp.m('anonymous sees no orders', not exists (select 1 from public.orders));
+  r := r || pg_temp.expect('anonymous cannot read orders at all (no table privilege)', 'select 1 from public.orders', '42501');
   perform pg_temp.as_user(ap);
   r := r || pg_temp.expect('...really cannot add a category', format('insert into public.categories (category_name, restaurant_id) values (%L, %s)', 'Early', rp), '42501');
   perform pg_temp.as_su();
