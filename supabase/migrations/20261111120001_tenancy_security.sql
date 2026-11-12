@@ -549,3 +549,17 @@ begin
     end if;
   end loop;
 end $$;
+
+------------------------------------------------------------------------------------------------------------------
+-- 9. Fix (applied as 20261112_tenancy_fix_policy_recursion): orders_select looks at deliveries, so deliveries_select
+--    must NOT look back at orders under RLS (infinite recursion, 42P17). A security-definer helper reads orders directly.
+------------------------------------------------------------------------------------------------------------------
+create function private.is_member_of_order(p_order bigint) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.orders o where o.id = p_order and private.is_member(o.restaurant_id))
+$$;
+revoke execute on function private.is_member_of_order(bigint) from public, anon;
+grant  execute on function private.is_member_of_order(bigint) to authenticated, service_role;
+drop policy deliveries_select on public.deliveries;
+create policy deliveries_select on public.deliveries for select to authenticated
+  using (rider_id = (select auth.uid()) or private.is_member_of_order(order_id));
