@@ -13,6 +13,9 @@ test addresses, locked-down queue access, and the sender's lease and retry rules
 `tenancy_foundation.test.sql` (44 checks) covers version 2 Phase 1: the Restaurant #1 backfill, restaurant and team constraints,
 cross-restaurant foreign keys, the membership helper functions, who can see pending restaurants, and that v1 still works.
 
+`tenancy.test.sql` (80 checks) covers version 2 Phase 2: two restaurants try to read or change each other's orders, menu, fees,
+reviews, refunds, deliveries and team. Staff cannot add team members; managers add staff to their own restaurant only.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.
