@@ -57,7 +57,7 @@ verification beyond admin approval, automated bank payouts.
 - Move the v1 staff users into `restaurant_members` for Restaurant #1.
 - Test: v1 SQL tests still pass; new tests for the helpers and the backfill.
 
-### Phase 2: Security refactor + isolation tests - APPLIED 2026-11-12 (isolation test 0 failures; v1 regression files still to re-run)
+### Phase 2: Security refactor + isolation tests - DONE 2026-11-25 (all 5 SQL test files pass; browser tests to re-run)
 - Rewrite every policy and function (cart, `place_order`, status changes, rider assignment, reviews, refunds, zones, fees) to be restaurant-aware.
 - Platform admin keeps global access; owner/manager/staff get their restaurant only.
 - Added `add_restaurant_member` (staff cannot add anyone; manager adds staff; owner adds managers; admin appoints owners).
