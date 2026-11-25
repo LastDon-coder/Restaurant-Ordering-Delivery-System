@@ -122,9 +122,9 @@ begin
   r := r || pg_temp.expect('another customer cannot rate my order', format('select public.submit_order_rating(%s, 5)', od), 'P0002');
   r := r || pg_temp.m('...and sees no ratings', (select count(*) from public.order_ratings) = 0);
   perform pg_temp.as_user(st);
-  r := r || pg_temp.m('staff can read order ratings', (select count(*) from public.order_ratings) = 1 and (select delivery_rating from public.order_ratings) = 5);
+  r := r || pg_temp.m('staff can read order ratings', (select count(*) from public.order_ratings where order_id = od) = 1 and (select delivery_rating from public.order_ratings where order_id = od) = 5);
   perform pg_temp.as_user(ad);
-  r := r || pg_temp.m('admin can read order ratings', (select count(*) from public.order_ratings) = 1);
+  r := r || pg_temp.m('admin can read order ratings', (select count(*) from public.order_ratings where order_id = od) = 1);
   perform pg_temp.as_user(rd);
   r := r || pg_temp.m('riders cannot read order ratings', (select count(*) from public.order_ratings) = 0);
   perform pg_temp.as_anon();
