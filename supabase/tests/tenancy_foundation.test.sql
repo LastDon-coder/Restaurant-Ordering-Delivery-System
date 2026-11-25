@@ -67,8 +67,8 @@ begin
   insert into public.food_items (category_id, food_name, price, restaurant_id) values (cat1, 'T-Food One', 1000, 1) returning id into f1;
   r := r || pg_temp.expect('food cannot use another restaurant''s category (composite FK)',
     format('insert into public.food_items (category_id, food_name, price, restaurant_id) values (%s, %L, 1, %s)', cat1, 'T-Bad', rb), '23503');
-  r := r || pg_temp.expect('food cannot be moved to another restaurant while in its category',
-    format('update public.food_items set restaurant_id = %s where id = %s', rb, f1), '23503');
+  r := r || pg_temp.expect('food cannot be moved to another restaurant (the Phase 2 lock stops it before the foreign key)',
+    format('update public.food_items set restaurant_id = %s where id = %s', rb, f1), '55000');
   r := r || pg_temp.expect('a category name is unique inside a restaurant', format('insert into public.categories (category_name, restaurant_id) values (%L, %s)', 't-cat beta ', rb), '23505');
 
   insert into public.delivery_zones (zone_name, extra_fee, restaurant_id) values ('T-Zone Beta', 100, rb) returning id into zb;
@@ -145,7 +145,7 @@ begin
   r := r || pg_temp.m('a manager sees the whole team of their restaurant', (select count(*) from public.restaurant_members where restaurant_id = rb) >= 5);
   r := r || pg_temp.m('...but not the team of another restaurant', (select count(*) from public.restaurant_members where restaurant_id = rc) = 0);
   perform pg_temp.as_user(sf);
-  r := r || pg_temp.m('staff see only their own membership row', (select count(*) from public.restaurant_members) = 1);
+  r := r || pg_temp.m('staff see only their own membership row', (select count(*) from public.restaurant_members where user_id <> sf) = 0 and (select count(*) from public.restaurant_members) = 2);   -- two own rows: Restaurant #1 and Beta
 
   perform pg_temp.as_su();
   select count(*) into fails from unnest(r) x where x like 'FAIL%';
