@@ -69,8 +69,10 @@ test('customer orders into that area (cash on delivery)', async () => {
   const card = page.locator('article').first();
   await expect(card).toBeVisible();
   s.food = (await card.locator('h3').innerText()).trim();
+  // Wait for the server's answer, not for the "Added ✓" label (it shows for only 1.5 seconds, so a slow page can miss it).
+  const added = page.waitForResponse((r) => r.url().includes('/rpc/add_to_cart') && r.ok());
   await card.getByRole('button', { name: 'Add to cart' }).click();
-  await expect(card.getByRole('button', { name: 'Added ✓' })).toBeVisible();
+  await added;
 
   await page.goto('/checkout');
   await page.getByLabel('Street address').fill('E2E TEST - do not prepare or deliver');
