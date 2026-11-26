@@ -66,6 +66,20 @@ function compose(row: Row) {
           `Customer: ${p.customer_first_name ?? ''}${p.customer_phone ? ' · ' + p.customer_phone : ''}`,
           p.payment_method === 'cash_on_delivery' ? `Collect cash: ${total}` : 'Already paid online: collect nothing'], items: [],
         link: `${SITE}/rider`, linkLabel: 'Open your deliveries' }
+    case 'restaurant_pending':
+      return { subject: `New restaurant application: ${p.restaurant_name}`, intro: `${hi} a restaurant has applied to join the platform and needs your review.`,
+        facts: [`Restaurant: ${p.restaurant_name}`, `Applicant: ${p.applicant ?? ''}`, `Phone: ${p.phone ?? ''}`, `Address: ${p.address ?? ''}`], items: [],
+        link: `${SITE}/admin/restaurants`, linkLabel: 'Review applications' }
+    case 'restaurant_decision': {
+      const d = p.decision
+      const why = p.reason ? [`Reason: ${p.reason}`] : []
+      const t = d === 'approve' ? { s: `${p.restaurant_name} is approved`, m: 'Good news: your restaurant is approved and now live. Log in to set up your menu, delivery areas and team.' }
+        : d === 'reject' ? { s: `Your application for ${p.restaurant_name}`, m: 'We reviewed your application and could not approve it this time.' }
+        : d === 'suspend' ? { s: `${p.restaurant_name} has been suspended`, m: 'Your restaurant is suspended and is not taking orders for now.' }
+        : { s: `${p.restaurant_name} is live again`, m: 'Your restaurant has been reinstated and can take orders again.' }
+      return { subject: t.s, intro: `${hi} ${t.m}`, facts: [`Restaurant: ${p.restaurant_name}`, ...why], items: [],
+        link: `${SITE}/staff/orders`, linkLabel: 'Open your dashboard' }
+    }
     default:
       throw new Error(`unknown kind ${row.kind}`)
   }
@@ -80,7 +94,7 @@ function render(row: Row) {
 <ul style="padding-left:18px">${c.facts.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
 ${c.items.length ? itemsHtml(c.items) : ''}
 <p style="margin:20px 0"><a href="${esc(c.link)}" style="background:#c0392b;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${esc(c.linkLabel)}</a></p>
-<p style="color:#888;font-size:12px">You get this email because of an order on ${esc(NAME)}.</p></div>`
+<p style="color:#888;font-size:12px">You get this email because of your account on ${esc(NAME)}.</p></div>`
   return { subject: c.subject, text, html }
 }
 
