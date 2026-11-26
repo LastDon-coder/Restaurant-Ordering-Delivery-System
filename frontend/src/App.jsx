@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminMenuPage from './pages/AdminMenuPage';
@@ -17,7 +17,8 @@ import OrderPage from './pages/OrderPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import PaymentCallbackPage from './pages/PaymentCallbackPage';
 import LoginPage from './pages/LoginPage';
-import MenuPage from './pages/MenuPage';
+import HomePage from './pages/HomePage';
+import RestaurantPage from './pages/RestaurantPage';
 import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
 
@@ -25,7 +26,8 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<MenuPage />} />
+        <Route index element={<HomePage />} />
+        <Route path="r/:slug" element={<RestaurantPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="set-password" element={<SetPasswordPage />} />
@@ -33,7 +35,8 @@ export default function App() {
         <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute roles={['customer']} />}>
           <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="checkout/:restaurantId" element={<CheckoutPage />} />
+          <Route path="checkout" element={<Navigate to="/cart" replace />} />
           <Route path="orders" element={<MyOrdersPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="payment/callback" element={<PaymentCallbackPage />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { useCart } from '../context/CartContext';
 import { initializePayment } from '../services/paymentService';
@@ -8,10 +8,14 @@ import { placeOrder } from '../services/orderService';
 import { friendlyDbError } from '../utils/errors';
 import { formatMoney } from '../utils/format';
 
+const EMPTY = { items: [], restaurant: null, summary: { subtotal: '0.00', delivery_fee: '0.00', discount: '0.00', total: '0.00', item_count: 0 } };
 const LIMITS = { street_address: 255, city: 100, state: 100, landmark: 255 };
 
 export default function CheckoutPage() {
-  const { cart, loading, loadError, refresh } = useCart();
+  const { restaurantId: rid } = useParams();
+  const restaurantId = Number(rid);
+  const { cartFor, loading, loadError, refresh } = useCart();
+  const cart = cartFor(restaurantId) ?? EMPTY;
   const navigate = useNavigate();
   const [form, setForm] = useState({ street_address: '', city: '', state: '', landmark: '' });
   const [method, setMethod] = useState('online');
@@ -26,11 +30,11 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     let cancelled = false;
-    listZones()
+    listZones(restaurantId)
       .then((z) => { if (!cancelled) { setZones(z); setZonesState('ready'); } })
       .catch((e) => { console.error(e); if (!cancelled) setZonesState('error'); });
     return () => { cancelled = true; };
-  }, []);
+  }, [restaurantId]);
 
   // Ask the server what the delivery will cost for this area (also re-runs if the cart changes).
   const cartTotal = cart.summary.total;
@@ -38,18 +42,18 @@ export default function CheckoutPage() {
     if (cart.items.length === 0) return undefined;
     let cancelled = false;
     setQuoteError('');
-    getDeliveryQuote(zoneId ? Number(zoneId) : null)
+    getDeliveryQuote(restaurantId, zoneId ? Number(zoneId) : null)
       .then((q) => { if (!cancelled) setQuote(q); })
       .catch((e) => { console.error(e); if (!cancelled) { setQuote(null); setQuoteError(friendlyDbError(e)); } });
     return () => { cancelled = true; };
-  }, [zoneId, cartTotal, cart.items.length]);
+  }, [restaurantId, zoneId, cartTotal, cart.items.length]);
 
   if (loading && cart.items.length === 0) return <Loading label="Loading your cart…" />;
   if (loadError) return <ErrorMessage message={loadError} onRetry={refresh} />;
   if (cart.items.length === 0 && !busy) {
     return (
       <EmptyState title="Your cart is empty">
-        <Link to="/">Browse the menu</Link>
+        <Link to="/cart">Back to your carts</Link>
       </EmptyState>
     );
   }
@@ -72,7 +76,7 @@ export default function CheckoutPage() {
     setBusy(true);
     let orderId;
     try {
-      orderId = await placeOrder(form, method, zoneId ? Number(zoneId) : null);
+      orderId = await placeOrder(restaurantId, form, method, zoneId ? Number(zoneId) : null);
     } catch (err) {
       console.error(err);
       setFormError(friendlyDbError(err));
@@ -101,6 +105,7 @@ export default function CheckoutPage() {
   return (
     <section>
       <h1>Checkout</h1>
+      {cart.restaurant && <p className="muted">Ordering from <strong>{cart.restaurant.name}</strong></p>}
       <form onSubmit={onSubmit} className="form" noValidate>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         {blocked && <p className="form-error" role="alert">Some items are unavailable. <Link to="/cart">Fix your cart</Link></p>}

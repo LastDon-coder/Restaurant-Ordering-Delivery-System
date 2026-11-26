@@ -65,7 +65,7 @@ test('admin adds a delivery area', async () => {
 
 test('customer orders into that area (cash on delivery)', async () => {
   const { page } = people.customer;
-  await page.goto('/');
+  await page.goto('/r/restaurant');
   const card = page.locator('article').first();
   await expect(card).toBeVisible();
   s.food = (await card.locator('h3').innerText()).trim();
@@ -74,7 +74,7 @@ test('customer orders into that area (cash on delivery)', async () => {
   await card.getByRole('button', { name: 'Add to cart' }).click();
   await added;
 
-  await page.goto('/checkout');
+  await page.goto('/checkout/1');
   await page.getByLabel('Street address').fill('E2E TEST - do not prepare or deliver');
   await page.getByLabel('City').fill('Port Harcourt');
   await page.getByLabel('State').fill('Rivers');
@@ -146,7 +146,7 @@ test('customer rates the order and reviews the food', async () => {
 
 test('an unapproved review is not public; the order rating stays private', async () => {
   const { page } = people.visitor;
-  await page.goto('/');
+  await page.goto('/r/restaurant');
   const card = page.locator('article', { hasText: s.food });
   await expect(card).toBeVisible();
   const reviews = card.getByRole('button', { name: /\d+ reviews?/ });
@@ -169,7 +169,7 @@ test('admin approves the review and it appears on the menu; staff see the order 
   await expect(admin.getByText(MARKER).first()).toBeVisible(); // the private order rating shows lower on the page
 
   const visitor = people.visitor.page;
-  await visitor.goto('/');
+  await visitor.goto('/r/restaurant');
   const card = visitor.locator('article', { hasText: s.food });
   await card.getByRole('button', { name: /\d+ reviews?/ }).click();
   await expect(card.getByText(MARKER)).toBeVisible();
@@ -191,7 +191,7 @@ test('admin hides the review again so it is not left on the live menu', async ()
   s.approved = false;
 
   const visitor = people.visitor.page;
-  await visitor.goto('/');
+  await visitor.goto('/r/restaurant');
   const menuCard = visitor.locator('article', { hasText: s.food });
   await expect(menuCard).toBeVisible();
   const reviews = menuCard.getByRole('button', { name: /\d+ reviews?/ });

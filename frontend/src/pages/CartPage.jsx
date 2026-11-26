@@ -7,7 +7,27 @@ import { useState } from 'react';
 const MAX = 50;
 
 export default function CartPage() {
-  const { cart, loading, busy, loadError, refresh, setQuantity, removeItem } = useCart();
+  const { carts, loading, loadError, refresh } = useCart();
+  if (loading && carts.length === 0) return <Loading label="Loading your cart…" />;
+  if (loadError) return <ErrorMessage message={loadError} onRetry={refresh} />;
+  if (carts.length === 0) {
+    return (
+      <EmptyState title="Your cart is empty">
+        <Link to="/">Find a restaurant</Link>
+      </EmptyState>
+    );
+  }
+  return (
+    <section>
+      <h1>Your carts</h1>
+      {carts.length > 1 && <p className="muted">You have food from {carts.length} restaurants. Each one is ordered, paid and delivered separately.</p>}
+      {carts.map((c) => <RestaurantCart key={c.restaurant.id} cart={c} />)}
+    </section>
+  );
+}
+
+function RestaurantCart({ cart }) {
+  const { busy, setQuantity, removeItem } = useCart();
   const [error, setError] = useState('');
 
   async function change(action) {
@@ -15,23 +35,13 @@ export default function CartPage() {
     const result = await action();
     if (!result.ok) setError(result.error);
   }
-
-  if (loading && cart.items.length === 0) return <Loading label="Loading your cart…" />;
-  if (loadError) return <ErrorMessage message={loadError} onRetry={refresh} />;
-  if (cart.items.length === 0) {
-    return (
-      <EmptyState title="Your cart is empty">
-        <Link to="/">Browse the menu</Link>
-      </EmptyState>
-    );
-  }
-
   const { summary } = cart;
   const unavailable = cart.items.filter((i) => !i.is_available);
 
   return (
-    <section>
-      <h1>Your cart</h1>
+    <div className="restaurant-cart">
+      <h2><Link to={`/r/${cart.restaurant.slug}`}>{cart.restaurant.name}</Link></h2>
+      {!cart.restaurant.is_open && <p className="form-error" role="status">This restaurant is closed right now. You can order when it opens.</p>}
       {unavailable.length > 0 && (
         <p className="form-error" role="alert">
           {unavailable.map((i) => i.food_name).join(', ')} {unavailable.length > 1 ? 'are' : 'is'} no longer available. Remove{' '}
@@ -105,11 +115,11 @@ export default function CartPage() {
         </div>
       </dl>
       <p className="muted small">The delivery fee depends on your area and is confirmed at checkout. Prices are confirmed again when you place the order.</p>
-      {unavailable.length > 0 ? (
+      {unavailable.length > 0 || !cart.restaurant.is_open ? (
         <button type="button" className="btn" disabled>Checkout</button>
       ) : (
-        <Link className="btn" to="/checkout">Checkout</Link>
+        <Link className="btn" to={`/checkout/${cart.restaurant.id}`}>Checkout</Link>
       )}
-    </section>
+    </div>
   );
 }

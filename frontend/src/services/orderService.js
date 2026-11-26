@@ -2,8 +2,8 @@ import { supabase } from './supabase';
 
 // The address is sent with the order; place_order validates it and re-prices the cart on the server.
 // zoneId is optional: no zone = the standard fee. The server prices the order; the browser sends no amounts.
-export async function placeOrder(address, paymentMethod, zoneId = null) {
-  const { data, error } = await supabase.rpc('place_order', { p_address: address, p_payment_method: paymentMethod, p_zone_id: zoneId });
+export async function placeOrder(restaurantId, address, paymentMethod, zoneId = null) {
+  const { data, error } = await supabase.rpc('place_order', { p_restaurant: restaurantId, p_address: address, p_payment_method: paymentMethod, p_zone_id: zoneId });
   if (error) throw error;
   return data; // new order id
 }

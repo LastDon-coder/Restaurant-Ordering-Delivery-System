@@ -137,3 +137,16 @@ a.tab.active { color: #fff; }
 .review-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
 .review-list li { border-top: 1px solid var(--border); padding-top: 8px; }
 .review-list p { margin: 2px 0; }
+
+/* v2: restaurants */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.small { font-size: .9rem; }
+.search { display: block; margin-bottom: 16px; }
+.search input { width: 100%; max-width: 480px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
+.restaurant-card { text-decoration: none; color: inherit; }
+.restaurant-card:hover { border-color: var(--brand); }
+.restaurant-closed { opacity: .6; filter: grayscale(.7); }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.tag-open { background: #dff3e4; color: #1d6b34; }
+.tag-closed { background: #eee; color: #555; }
+.restaurant-cart { margin: 24px 0 36px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }

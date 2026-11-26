@@ -17,7 +17,7 @@ export default function Layout() {
           </Link>
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>
-              Menu
+              Restaurants
             </NavLink>
             {!loading && !user && (
               <>

@@ -2,10 +2,23 @@ import { expect, test } from '@playwright/test';
 
 // No login needed. Safe checks of the public site.
 
-test('the menu loads', async ({ page }) => {
+test('the restaurant list loads and opens a menu', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Our menu' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Order from a restaurant' })).toBeVisible();
+  await page.locator('a.restaurant-card').first().click();
+  await expect(page).toHaveURL(/\/r\//);
   await expect(page.locator('article').first()).toBeVisible();
+});
+
+test('searching restaurants with no match shows an empty state', async ({ page }) => {
+  await page.goto('/');
+  await page.getByPlaceholder('Search restaurants by name').fill('zzzz-no-such-place');
+  await expect(page.getByText('No restaurant matches your search')).toBeVisible();
+});
+
+test('an unknown restaurant shows not found', async ({ page }) => {
+  await page.goto('/r/does-not-exist');
+  await expect(page.getByText('Restaurant not found')).toBeVisible();
 });
 
 test('logged-out visitors are sent to the login page', async ({ page }) => {

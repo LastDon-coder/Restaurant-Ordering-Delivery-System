@@ -4,14 +4,15 @@ import { friendlyDbError } from '../utils/errors';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
-const EMPTY = { items: [], summary: { subtotal: '0.00', delivery_fee: '0.00', discount: '0.00', total: '0.00', item_count: 0 } };
+const NO_CARTS = [];
 
+// A customer has one basket per restaurant. `carts` is the list of non-empty baskets; every price in it comes from the database.
 export function CartProvider({ children }) {
   const { user, role } = useAuth();
   const isCustomer = role === 'customer';
   const userId = user?.id;
 
-  const [cart, setCart] = useState(EMPTY);
+  const [carts, setCarts] = useState(NO_CARTS);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -20,7 +21,7 @@ export function CartProvider({ children }) {
     setLoading(true);
     setLoadError('');
     try {
-      setCart(await cartService.getCart());
+      setCarts(await cartService.getCarts());
     } catch (e) {
       console.error(e);
       setLoadError(friendlyDbError(e));
@@ -29,22 +30,21 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-  // Load the cart for signed-in customers; clear it on sign-out or for other roles.
   useEffect(() => {
     if (!userId || !isCustomer) {
-      setCart(EMPTY);
+      setCarts(NO_CARTS);
       setLoadError('');
       return;
     }
     refresh();
   }, [userId, isCustomer, refresh]);
 
-  // Runs one cart change. Returns { ok, error } so the caller can show a message next to the button.
+  // Runs one cart change, then reloads all baskets. Returns { ok, error } so the caller can show a message next to the button.
   const run = useCallback(async (change) => {
     setBusy(true);
     try {
-      const updated = await change();
-      setCart(updated ?? (await cartService.getCart()));
+      await change();
+      setCarts(await cartService.getCarts());
       return { ok: true };
     } catch (e) {
       console.error(e);
@@ -56,8 +56,9 @@ export function CartProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      cart,
-      count: cart.summary.item_count,
+      carts,
+      count: carts.reduce((n, c) => n + c.summary.item_count, 0),
+      cartFor: (restaurantId) => carts.find((c) => c.restaurant.id === Number(restaurantId)) ?? null,
       loading,
       busy,
       loadError,
@@ -66,7 +67,7 @@ export function CartProvider({ children }) {
       setQuantity: (itemId, qty) => run(() => cartService.setItemQuantity(itemId, qty)),
       removeItem: (itemId) => run(() => cartService.removeItem(itemId)),
     }),
-    [cart, loading, busy, loadError, refresh, run],
+    [carts, loading, busy, loadError, refresh, run],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

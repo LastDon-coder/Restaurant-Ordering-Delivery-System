@@ -6,7 +6,7 @@ import { formatMoney } from '../utils/format';
 import FoodReviews from './FoodReviews';
 import { Stars } from './Stars';
 
-export default function FoodCard({ food, rating }) {
+export default function FoodCard({ food, rating, orderable = true, from = '/' }) {
   const { user, role, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const [status, setStatus] = useState('idle'); // idle | adding | added
@@ -34,13 +34,13 @@ export default function FoodCard({ food, rating }) {
   let action = null;
   if (!authLoading && !user) {
     action = (
-      <Link className="btn btn-small" to="/login" state={{ from: '/' }}>
+      <Link className="btn btn-small" to="/login" state={{ from }}>
         Log in to order
       </Link>
     );
   } else if (role === 'customer') {
     action = (
-      <button type="button" className="btn btn-small" onClick={onAdd} disabled={status === 'adding'}>
+      <button type="button" className="btn btn-small" onClick={onAdd} disabled={status === 'adding' || !orderable} title={orderable ? undefined : 'This restaurant is closed'}>
         {status === 'adding' ? 'Adding…' : status === 'added' ? 'Added ✓' : 'Add to cart'}
       </button>
     );
