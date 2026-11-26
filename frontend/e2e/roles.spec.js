@@ -14,6 +14,9 @@ test('customer', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'My orders' })).toBeVisible();
   await page.goto('/orders');
   await expect(page.getByRole('heading', { name: /orders/i }).first()).toBeVisible();
+  await page.goto('/apply');
+  await expect(page.getByRole('heading', { name: 'Open a restaurant' })).toBeVisible();
+  await blocked(page, '/admin/restaurants');
   await blocked(page, '/staff/orders');
   await blocked(page, '/admin/delivery');
   await blocked(page, '/rider');
@@ -27,6 +30,8 @@ test('staff', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Reviews', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0); // staff cannot moderate
   await blocked(page, '/admin/menu');
+  await blocked(page, '/admin/restaurants');
+  await blocked(page, '/apply');
   await blocked(page, '/cart');
 });
 
@@ -41,7 +46,7 @@ test('rider', async ({ page }) => {
 
 test('admin', async ({ page }) => {
   await login(page, 'admin');
-  for (const [path, heading] of [['/admin/menu', 'Menu'], ['/admin/delivery', 'Delivery'], ['/staff/reviews', 'Reviews'], ['/admin/users', 'Users & roles']]) {
+  for (const [path, heading] of [['/admin/menu', 'Menu'], ['/admin/delivery', 'Delivery'], ['/staff/reviews', 'Reviews'], ['/admin/users', 'Users & roles'], ['/admin/restaurants', 'Restaurants']]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }

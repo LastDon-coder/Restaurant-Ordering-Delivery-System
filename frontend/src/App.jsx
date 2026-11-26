@@ -3,6 +3,8 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminMenuPage from './pages/AdminMenuPage';
 import AdminRefundsPage from './pages/AdminRefundsPage';
+import ApplyPage from './pages/ApplyPage';
+import AdminRestaurantsPage from './pages/AdminRestaurantsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminDeliveryPage from './pages/AdminDeliveryPage';
 import ReviewsPage from './pages/ReviewsPage';
@@ -34,6 +36,7 @@ export default function App() {
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute roles={['customer']} />}>
+          <Route path="apply" element={<ApplyPage />} />
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout/:restaurantId" element={<CheckoutPage />} />
           <Route path="checkout" element={<Navigate to="/cart" replace />} />
@@ -49,6 +52,7 @@ export default function App() {
           <Route path="admin/menu" element={<AdminMenuPage />} />
           <Route path="admin/delivery" element={<AdminDeliveryPage />} />
           <Route path="admin/refunds" element={<AdminRefundsPage />} />
+          <Route path="admin/restaurants" element={<AdminRestaurantsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
         </Route>
         <Route element={<ProtectedRoute roles={['rider']} />}>
