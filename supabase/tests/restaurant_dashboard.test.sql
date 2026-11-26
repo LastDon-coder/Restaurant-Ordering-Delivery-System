@@ -5,7 +5,7 @@ declare
   r text[] := '{}';
   ad uuid := gen_random_uuid(); oa uuid := gen_random_uuid(); ma uuid := gen_random_uuid(); sa uuid := gen_random_uuid();
   ob uuid := gen_random_uuid(); mb uuid := gen_random_uuid(); cu uuid := gen_random_uuid(); nw uuid := gen_random_uuid(); rd uuid := gen_random_uuid();
-  ra bigint; rb bigint; n int; v jsonb;
+  ra bigint; rb bigint; n int; v jsonb; e_nw text; e_rd text; e_cu text;
 begin
   create function pg_temp.m(p_name text, p_ok boolean) returns text language sql as
     $f$ select case when coalesce(p_ok, false) then 'PASS ' else 'FAIL ' end || p_name $f$;
@@ -28,6 +28,11 @@ begin
   insert into public.restaurants (name, slug, status, base_delivery_fee, created_by) values ('Alpha Grill', 'd-alpha', 'active', 200, oa) returning id into ra;
   insert into public.restaurants (name, slug, status, base_delivery_fee, created_by) values ('Beta Kitchen', 'd-beta', 'active', 500, ob) returning id into rb;
   insert into public.restaurant_members values (ra, oa, 'owner'), (ra, ma, 'manager'), (ra, sa, 'staff'), (rb, ob, 'owner'), (rb, mb, 'manager');
+
+  -- emails are read here, as the superuser: the test users themselves may not read auth.users
+  select email into e_nw from auth.users where id = nw;
+  select email into e_rd from auth.users where id = rd;
+  select email into e_cu from auth.users where id = cu;
 
   ---------- my restaurants ----------
   perform pg_temp.as_user(oa);
@@ -80,13 +85,13 @@ begin
   perform pg_temp.as_user(sa);
   r := r || pg_temp.expect('staff A cannot see the team list', format('select public.list_restaurant_team(%s)', ra), '42501');
   perform pg_temp.as_user(ma);
-  r := r || pg_temp.expect('add a staff member by email', format('select public.add_restaurant_member_by_email(%s, (select email from auth.users where id = %L), %L)', ra, nw, 'staff'), 'ok');
+  r := r || pg_temp.expect('add a staff member by email', format('select public.add_restaurant_member_by_email(%s, %L, %L)', ra, e_nw, 'staff'), 'ok');
   r := r || pg_temp.m('...they are on team A', exists (select 1 from public.restaurant_members where restaurant_id = ra and user_id = nw));
-  r := r || pg_temp.expect('adding the same email again is refused', format('select public.add_restaurant_member_by_email(%s, (select email from auth.users where id = %L), %L)', ra, nw, 'staff'), '55000');
+  r := r || pg_temp.expect('adding the same email again is refused', format('select public.add_restaurant_member_by_email(%s, %L, %L)', ra, e_nw, 'staff'), '55000');
   r := r || pg_temp.expect('an unknown email gets the generic answer', format('select public.add_restaurant_member_by_email(%s, %L, %L)', ra, 'nobody@notify-check.dev', 'staff'), '22023');
-  r := r || pg_temp.expect('a rider email gets the SAME answer (no account probing)', format('select public.add_restaurant_member_by_email(%s, (select email from auth.users where id = %L), %L)', ra, rd, 'staff'), '22023');
-  r := r || pg_temp.expect('a manager cannot appoint a manager', format('select public.add_restaurant_member_by_email(%s, (select email from auth.users where id = %L), %L)', ra, cu, 'manager'), '42501');
-  r := r || pg_temp.expect('a manager cannot add people to B', format('select public.add_restaurant_member_by_email(%s, (select email from auth.users where id = %L), %L)', rb, cu, 'staff'), '42501');
+  r := r || pg_temp.expect('a rider email gets the SAME answer (no account probing)', format('select public.add_restaurant_member_by_email(%s, %L, %L)', ra, e_rd, 'staff'), '22023');
+  r := r || pg_temp.expect('a manager cannot appoint a manager', format('select public.add_restaurant_member_by_email(%s, %L, %L)', ra, e_cu, 'manager'), '42501');
+  r := r || pg_temp.expect('a manager cannot add people to B', format('select public.add_restaurant_member_by_email(%s, %L, %L)', rb, e_cu, 'staff'), '42501');
 
   ---------- removing ----------
   r := r || pg_temp.expect('manager A cannot remove themselves', format('select public.remove_restaurant_member(%s, %L)', ra, ma), '55000');
