@@ -2,26 +2,27 @@ import { supabase } from './supabase';
 import { callFunction } from './edge';
 
 // ---------- menu (admin only; Row Level Security enforces it, the UI just hides what you can't use) ----------
-export async function adminCategories() {
-  const { data, error } = await supabase.from('categories').select('id, category_name, description, image_url, status').order('id');
+export async function adminCategories(restaurantId) {
+  const { data, error } = await supabase.from('categories').select('id, category_name, description, image_url, status').eq('restaurant_id', restaurantId).order('id');
   if (error) throw error;
   return data;
 }
-export async function saveCategory(id, values) {
-  const q = id ? supabase.from('categories').update(values).eq('id', id) : supabase.from('categories').insert(values);
+export async function saveCategory(id, values, restaurantId) {
+  const q = id ? supabase.from('categories').update(values).eq('id', id) : supabase.from('categories').insert({ ...values, restaurant_id: restaurantId });
   const { error } = await q;
   if (error) throw error;
 }
-export async function adminFoods() {
+export async function adminFoods(restaurantId) {
   const { data, error } = await supabase
     .from('food_items')
     .select('id, category_id, food_name, description, price, image_url, is_available')
+    .eq('restaurant_id', restaurantId)
     .order('id');
   if (error) throw error;
   return data;
 }
-export async function saveFood(id, values) {
-  const q = id ? supabase.from('food_items').update(values).eq('id', id) : supabase.from('food_items').insert(values);
+export async function saveFood(id, values, restaurantId) {
+  const q = id ? supabase.from('food_items').update(values).eq('id', id) : supabase.from('food_items').insert({ ...values, restaurant_id: restaurantId });
   const { error } = await q;
   if (error) throw error;
 }
@@ -77,23 +78,23 @@ export const resendInvite = (userId) => callFunction('invite-user', { action: 'r
 // ---------- delivery fee and zones ----------
 // Final fee = base fee + the extra charge of the zone the customer picks. The database calculates it; here the
 // admin only edits the base fee and the zones. Row Level Security limits writes to admins.
-export async function getBaseFee() {
-  const { data, error } = await supabase.rpc('get_delivery_settings');
+export async function getBaseFee(restaurantId) {
+  const { data, error } = await supabase.rpc('get_delivery_settings', { p_restaurant: restaurantId });
   if (error) throw error;
   return data.base_fee; // string like "2000.00"
 }
-export async function setBaseFee(fee) {
-  const { data, error } = await supabase.rpc('admin_set_delivery_fee', { p_fee: fee });
+export async function setBaseFee(restaurantId, fee) {
+  const { data, error } = await supabase.rpc('admin_set_delivery_fee', { p_restaurant: restaurantId, p_fee: fee });
   if (error) throw error;
   return data.base_fee;
 }
-export async function adminZones() {
-  const { data, error } = await supabase.from('delivery_zones').select('id, zone_name, extra_fee, is_active').order('zone_name');
+export async function adminZones(restaurantId) {
+  const { data, error } = await supabase.from('delivery_zones').select('id, zone_name, extra_fee, is_active').eq('restaurant_id', restaurantId).order('zone_name');
   if (error) throw error;
   return data;
 }
-export async function saveZone(id, values) {
-  const q = id ? supabase.from('delivery_zones').update(values).eq('id', id) : supabase.from('delivery_zones').insert(values);
+export async function saveZone(id, values, restaurantId) {
+  const q = id ? supabase.from('delivery_zones').update(values).eq('id', id) : supabase.from('delivery_zones').insert({ ...values, restaurant_id: restaurantId });
   const { error } = await q;
   if (error) throw error;
 }

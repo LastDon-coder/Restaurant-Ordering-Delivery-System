@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
+import AdminRestaurantPicker from '../components/AdminRestaurantPicker';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { adminZones, deleteZone, getBaseFee, saveZone, setBaseFee } from '../services/adminService';
 import { friendlyDbError } from '../utils/errors';
@@ -8,7 +9,7 @@ import { formatMoney } from '../utils/format';
 const MONEY_RE = /^\d{1,6}(\.\d{1,2})?$/;
 const dbMessage = (e) => (e?.code === '23505' ? 'A zone with that name already exists.' : friendlyDbError(e));
 
-function BaseFeeForm({ fee, onSaved }) {
+function BaseFeeForm({ fee, rid, onSaved }) {
   const [value, setValue] = useState(String(Number(fee)));
   const [error, setError] = useState('');
   const [ok, setOk] = useState(false);
@@ -19,7 +20,7 @@ function BaseFeeForm({ fee, onSaved }) {
     setError(''); setOk(false);
     if (!MONEY_RE.test(value.trim()) || Number(value) > 100000) return setError('Enter an amount like 2000 or 2000.50 (max 100000).');
     setBusy(true);
-    try { await setBaseFee(Number(value)); setOk(true); await onSaved(); }
+    try { await setBaseFee(rid, Number(value)); setOk(true); await onSaved(); }
     catch (err) { console.error(err); setError(err?.code === '22023' ? err.message : friendlyDbError(err)); }
     finally { setBusy(false); }
   }
@@ -36,7 +37,7 @@ function BaseFeeForm({ fee, onSaved }) {
   );
 }
 
-function ZoneForm({ initial, onSaved, onCancel }) {
+function ZoneForm({ initial, rid, onSaved, onCancel }) {
   const [v, setV] = useState({ zone_name: initial?.zone_name ?? '', extra_fee: initial ? String(Number(initial.extra_fee)) : '0', is_active: initial?.is_active ?? true });
   const [err, setErr] = useState({});
   const [formErr, setFormErr] = useState('');
@@ -49,7 +50,7 @@ function ZoneForm({ initial, onSaved, onCancel }) {
     if (!MONEY_RE.test(v.extra_fee.trim()) || Number(v.extra_fee) > 100000) next.extra_fee = 'A number like 0, 500 or 1500.50 (max 100000)';
     setErr(next); if (Object.keys(next).length) return;
     setBusy(true);
-    try { await saveZone(initial?.id, { zone_name: v.zone_name.trim(), extra_fee: Number(v.extra_fee).toFixed(2), is_active: v.is_active }); await onSaved(); }
+    try { await saveZone(initial?.id, { zone_name: v.zone_name.trim(), extra_fee: Number(v.extra_fee).toFixed(2), is_active: v.is_active }, rid); await onSaved(); }
     catch (e2) { console.error(e2); setFormErr(dbMessage(e2)); setBusy(false); }
   }
 
@@ -65,7 +66,7 @@ function ZoneForm({ initial, onSaved, onCancel }) {
   );
 }
 
-export default function AdminDeliveryPage() {
+export function DeliveryManager({ restaurantId }) {
   const [base, setBase] = useState('0');
   const [zones, setZones] = useState([]);
   const [state, setState] = useState('loading');
@@ -76,11 +77,11 @@ export default function AdminDeliveryPage() {
 
   const load = useCallback(async () => {
     try {
-      const [b, z] = await Promise.all([getBaseFee(), adminZones()]);
+      const [b, z] = await Promise.all([getBaseFee(restaurantId), adminZones(restaurantId)]);
       setBase(b); setZones(z); setState('ready');
     } catch (e) { console.error(e); setError(friendlyDbError(e)); setState('error'); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  }, [restaurantId]);
+  useEffect(() => { setState('loading'); setEditing(null); load(); }, [load]);
 
   async function run(fn) { setNotice(''); try { await fn(); await load(); } catch (e) { console.error(e); setNotice(dbMessage(e)); } }
   const afterSave = async () => { setEditing(null); await load(); };
@@ -89,19 +90,17 @@ export default function AdminDeliveryPage() {
   if (state === 'error') return <ErrorMessage message={error} onRetry={load} />;
 
   return (
-    <section>
-      <AdminNav />
-      <h1>Delivery</h1>
+    <div>
       {notice && <p className="form-error" role="alert">{notice}</p>}
 
-      <BaseFeeForm fee={base} onSaved={load} />
+      <BaseFeeForm key={restaurantId} fee={base} rid={restaurantId} onSaved={load} />
 
       <div className="order-head">
         <h2>Delivery areas</h2>
         {!editing && <button type="button" className="btn btn-small" onClick={() => setEditing({ item: null })}>+ Add area</button>}
       </div>
       <p className="muted small">Customers pick their area at checkout. Anyone who picks "Other area" pays the standard fee only.</p>
-      {editing && <ZoneForm key={editing.item?.id ?? 'new'} initial={editing.item} onSaved={afterSave} onCancel={() => setEditing(null)} />}
+      {editing && <ZoneForm key={editing.item?.id ?? 'new'} initial={editing.item} rid={restaurantId} onSaved={afterSave} onCancel={() => setEditing(null)} />}
 
       {zones.length === 0 ? (
         <EmptyState title="No delivery areas yet">Every order pays the standard fee until you add areas.</EmptyState>
@@ -126,6 +125,16 @@ export default function AdminDeliveryPage() {
         </ul>
       )}
       <p className="muted small">Deleting an area never changes past orders; they keep the area name and fee they were charged.</p>
+    </div>
+  );
+}
+
+export default function AdminDeliveryPage() {
+  return (
+    <section>
+      <AdminNav />
+      <h1>Delivery</h1>
+      <AdminRestaurantPicker>{(id) => <DeliveryManager restaurantId={id} />}</AdminRestaurantPicker>
     </section>
   );
 }

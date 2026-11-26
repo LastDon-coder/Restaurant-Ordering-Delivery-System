@@ -6,6 +6,7 @@ import AdminRefundsPage from './pages/AdminRefundsPage';
 import RestaurantShell from './components/RestaurantShell';
 import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
 import RestaurantTeamPage from './pages/RestaurantTeamPage';
+import { RestaurantDeliveryPage, RestaurantMenuPage } from './pages/RestaurantManagePages';
 import ApplyPage from './pages/ApplyPage';
 import AdminRestaurantsPage from './pages/AdminRestaurantsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -50,6 +51,8 @@ export default function App() {
         <Route element={<ProtectedRoute roles={['staff']} />}>
           <Route path="restaurant" element={<RestaurantShell />}>
             <Route index element={<RestaurantSettingsPage />} />
+            <Route path="menu" element={<RestaurantMenuPage />} />
+            <Route path="delivery" element={<RestaurantDeliveryPage />} />
             <Route path="team" element={<RestaurantTeamPage />} />
           </Route>
         </Route>

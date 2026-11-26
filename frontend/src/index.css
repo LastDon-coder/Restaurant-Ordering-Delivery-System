@@ -150,3 +150,4 @@ a.tab.active { color: #fff; }
 .tag-open { background: #dff3e4; color: #1d6b34; }
 .tag-closed { background: #eee; color: #555; }
 .restaurant-cart { margin: 24px 0 36px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.page-sub { font-size: 1.3rem; margin: 16px 0 4px; }

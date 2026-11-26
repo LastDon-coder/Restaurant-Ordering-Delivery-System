@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
+import AdminRestaurantPicker from '../components/AdminRestaurantPicker';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { adminCategories, adminFoods, deleteCategory, deleteFood, saveCategory, saveFood } from '../services/adminService';
 import { friendlyDbError } from '../utils/errors';
@@ -8,7 +9,7 @@ import { formatMoney } from '../utils/format';
 const isUrl = (v) => { try { return ['http:', 'https:'].includes(new URL(v).protocol); } catch { return false; } };
 const dbMessage = (e) => (e?.code === '23505' ? 'That name is already used.' : e?.code === '23503' ? 'It is used by existing orders or foods, so it cannot be deleted. Mark it unavailable / inactive instead.' : friendlyDbError(e));
 
-function CategoryForm({ initial, onSaved, onCancel }) {
+function CategoryForm({ initial, rid, onSaved, onCancel }) {
   const [v, setV] = useState({ category_name: initial?.category_name ?? '', description: initial?.description ?? '', image_url: initial?.image_url ?? '', status: initial?.status ?? 'active' });
   const [err, setErr] = useState({}); const [busy, setBusy] = useState(false); const [formErr, setFormErr] = useState('');
   async function submit(e) {
@@ -19,7 +20,7 @@ function CategoryForm({ initial, onSaved, onCancel }) {
     if (v.image_url && (!isUrl(v.image_url) || v.image_url.length > 500)) next.image_url = 'Enter a full http(s) link (max 500)';
     setErr(next); if (Object.keys(next).length) return;
     setBusy(true);
-    try { await saveCategory(initial?.id, { category_name: v.category_name.trim(), description: v.description.trim() || null, image_url: v.image_url.trim() || null, status: v.status }); await onSaved(); }
+    try { await saveCategory(initial?.id, { category_name: v.category_name.trim(), description: v.description.trim() || null, image_url: v.image_url.trim() || null, status: v.status }, rid); await onSaved(); }
     catch (e2) { console.error(e2); setFormErr(dbMessage(e2)); setBusy(false); }
   }
   return (
@@ -35,7 +36,7 @@ function CategoryForm({ initial, onSaved, onCancel }) {
   );
 }
 
-function FoodForm({ initial, categories, onSaved, onCancel }) {
+function FoodForm({ initial, rid, categories, onSaved, onCancel }) {
   const [v, setV] = useState({ category_id: initial?.category_id ?? categories[0]?.id ?? '', food_name: initial?.food_name ?? '', description: initial?.description ?? '', price: initial?.price ?? '', image_url: initial?.image_url ?? '', is_available: initial?.is_available ?? true });
   const [err, setErr] = useState({}); const [busy, setBusy] = useState(false); const [formErr, setFormErr] = useState('');
   async function submit(e) {
@@ -47,7 +48,7 @@ function FoodForm({ initial, categories, onSaved, onCancel }) {
     if (v.image_url && (!isUrl(v.image_url) || v.image_url.length > 500)) next.image_url = 'Enter a full http(s) link (max 500)';
     setErr(next); if (Object.keys(next).length) return;
     setBusy(true);
-    try { await saveFood(initial?.id, { category_id: Number(v.category_id), food_name: v.food_name.trim(), description: v.description.trim() || null, price: price.toFixed(2), image_url: v.image_url.trim() || null, is_available: v.is_available }); await onSaved(); }
+    try { await saveFood(initial?.id, { category_id: Number(v.category_id), food_name: v.food_name.trim(), description: v.description.trim() || null, price: price.toFixed(2), image_url: v.image_url.trim() || null, is_available: v.is_available }, rid); await onSaved(); }
     catch (e2) { console.error(e2); setFormErr(dbMessage(e2)); setBusy(false); }
   }
   return (
@@ -65,7 +66,7 @@ function FoodForm({ initial, categories, onSaved, onCancel }) {
   );
 }
 
-export default function AdminMenuPage() {
+export function MenuManager({ restaurantId }) {
   const [cats, setCats] = useState([]); const [foods, setFoods] = useState([]);
   const [state, setState] = useState('loading'); const [error, setError] = useState('');
   const [editing, setEditing] = useState(null); // {type:'cat'|'food', item|null}
@@ -73,10 +74,10 @@ export default function AdminMenuPage() {
   const [confirmDel, setConfirmDel] = useState(null); // {type, id}
 
   const load = useCallback(async () => {
-    try { const [c, f] = await Promise.all([adminCategories(), adminFoods()]); setCats(c); setFoods(f); setState('ready'); }
+    try { const [c, f] = await Promise.all([adminCategories(restaurantId), adminFoods(restaurantId)]); setCats(c); setFoods(f); setState('ready'); }
     catch (e) { console.error(e); setError(friendlyDbError(e)); setState('error'); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  }, [restaurantId]);
+  useEffect(() => { setState('loading'); setEditing(null); load(); }, [load]);
 
   async function run(fn) { setNotice(''); try { await fn(); await load(); } catch (e) { console.error(e); setNotice(dbMessage(e)); } }
   const afterSave = async () => { setEditing(null); await load(); };
@@ -86,13 +87,12 @@ export default function AdminMenuPage() {
   if (state === 'error') return <ErrorMessage message={error} onRetry={load} />;
 
   return (
-    <section>
-      <AdminNav />
-      <h1>Menu</h1>
+    <div>
+      <h2 className="page-sub">Menu</h2>
       {notice && <p className="form-error" role="alert">{notice}</p>}
 
       <div className="order-head"><h2>Categories</h2>{!editing && <button type="button" className="btn btn-small" onClick={() => setEditing({ type: 'cat', item: null })}>+ Add category</button>}</div>
-      {editing?.type === 'cat' && <CategoryForm initial={editing.item} onSaved={afterSave} onCancel={() => setEditing(null)} />}
+      {editing?.type === 'cat' && <CategoryForm initial={editing.item} rid={restaurantId} onSaved={afterSave} onCancel={() => setEditing(null)} />}
       {cats.length === 0 ? <EmptyState title="No categories yet" /> : (
         <ul className="cart-list">
           {cats.map((c) => (
@@ -112,7 +112,7 @@ export default function AdminMenuPage() {
       )}
 
       <div className="order-head"><h2>Foods</h2>{!editing && cats.length > 0 && <button type="button" className="btn btn-small" onClick={() => setEditing({ type: 'food', item: null })}>+ Add food</button>}</div>
-      {editing?.type === 'food' && <FoodForm initial={editing.item} categories={cats} onSaved={afterSave} onCancel={() => setEditing(null)} />}
+      {editing?.type === 'food' && <FoodForm initial={editing.item} rid={restaurantId} categories={cats} onSaved={afterSave} onCancel={() => setEditing(null)} />}
       {foods.length === 0 ? <EmptyState title="No foods yet" /> : (
         <ul className="cart-list">
           {foods.map((f) => (
@@ -130,6 +130,16 @@ export default function AdminMenuPage() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+export default function AdminMenuPage() {
+  return (
+    <section>
+      <AdminNav />
+      <h1>Menu</h1>
+      <AdminRestaurantPicker>{(id) => <MenuManager restaurantId={id} />}</AdminRestaurantPicker>
     </section>
   );
 }

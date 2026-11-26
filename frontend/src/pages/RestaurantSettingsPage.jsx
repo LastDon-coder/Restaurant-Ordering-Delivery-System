@@ -75,7 +75,7 @@ export default function RestaurantSettingsPage() {
             <form className="form" noValidate onSubmit={(e) => { e.preventDefault(); if (feeOk) save(() => setDeliveryFee(r.id, feeNumber), 'Delivery fee saved.'); }}>
               <h2>Delivery fee</h2>
               <label>Standard fee (₦)<input type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={fee} onChange={(e) => setFee(e.target.value)} aria-invalid={!feeOk} /></label>
-              <p className="muted small">Areas that cost extra are set up on the Delivery page.</p>
+              <p className="muted small">Areas that cost extra are set up on the <Link to="/restaurant/delivery">Delivery</Link> tab.</p>
               <button className="btn" type="submit" disabled={busy || !feeOk}>Save fee</button>
             </form>
           )}
