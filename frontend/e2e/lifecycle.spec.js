@@ -17,6 +17,7 @@ const s = { orderId: null, food: null, base: null, zoneCreated: false, approved:
 const people = {};
 
 test.beforeAll(async ({ browser }) => {
+  test.setTimeout(300_000); // five logins in a row; a slow connection to the live project must not fail the whole file
   for (const role of ['admin', 'customer', 'staff', 'rider']) people[role] = await openAs(browser, role);
   people.visitor = await openAs(browser, null); // not logged in
 });
