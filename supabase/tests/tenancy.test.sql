@@ -55,7 +55,27 @@ begin
   perform public.add_to_cart(fa, 2);
   r := r || pg_temp.m('get_cart reports the cart''s restaurant and ITS fee (200)',
     (public.get_cart() -> 'restaurant' ->> 'id')::bigint = ra and (public.get_cart() -> 'summary' ->> 'delivery_fee')::numeric = 200);
-  r := r || pg_temp.expect('adding food from another restaurant is refused', format('select public.add_to_cart(%s, 1)', fb), '55000');
+  perform public.add_to_cart(fb, 1);   -- other restaurant: allowed now, it opens a SEPARATE basket
+  r := r || pg_temp.m('two baskets: get_carts lists both, each with its own restaurant and fee',
+    jsonb_array_length(public.get_carts()) = 2
+    and (public.get_cart(ra) -> 'summary' ->> 'subtotal')::numeric = 2000 and (public.get_cart(rb) -> 'summary' ->> 'subtotal')::numeric = 700
+    and (public.get_cart(rb) -> 'summary' ->> 'delivery_fee')::numeric = 500);
+  r := r || pg_temp.expect('the one-basket get_cart() asks to choose when there are several', 'select public.get_cart()', '22023');
+  r := r || pg_temp.expect('place_order for a restaurant with no basket is refused', format('select public.place_order(%s, %L::jsonb, %L, null)', rp, '{"street_address":"1 Rd","city":"PH","state":"Rivers"}', 'cash_on_delivery'), '22023');
+  r := r || pg_temp.expect('a pending restaurant has no cart view', format('select public.get_cart(%s)', rp), 'P0002');
+  perform pg_temp.as_anon();
+  r := r || pg_temp.expect('anonymous cannot read carts', 'select public.get_carts()', '42501');
+  r := r || pg_temp.m('anonymous can list restaurants', jsonb_array_length(public.list_restaurants()) >= 2);
+  perform pg_temp.as_user(c2);
+  r := r || pg_temp.m('another customer sees none of those baskets', jsonb_array_length(public.get_carts()) = 0
+    and (public.get_cart(ra) -> 'summary' ->> 'item_count')::int = 0);
+  perform pg_temp.as_user(cu);
+  delete from public.cart_items where food_id = fb;    -- back to one basket for the rest of the checks
+  r := r || pg_temp.m('list_restaurants: active only, with open flag', (select count(*) from jsonb_array_elements(public.list_restaurants()) e
+    where e ->> 'slug' in ('t-alpha', 't-beta')) = 2 and not exists (select 1 from jsonb_array_elements(public.list_restaurants()) e where e ->> 'slug' = 't-pending'));
+  r := r || pg_temp.m('list_restaurants search is by name', (select count(*) from jsonb_array_elements(public.list_restaurants('alph')) e where e ->> 'slug' = 't-alpha') = 1
+    and (select count(*) from jsonb_array_elements(public.list_restaurants('%')) e) = 0);
+  r := r || pg_temp.expect('get_restaurant of a pending restaurant is hidden', 'select public.get_restaurant(''t-pending'')', 'P0002');
   r := r || pg_temp.expect('direct cart_items insert of another restaurant''s food is blocked by RLS',
     format('insert into public.cart_items (cart_id, food_id, quantity) select id, %s, 1 from public.carts where user_id = %L', fb, cu), '42501');
   r := r || pg_temp.expect('cannot add food of a pending restaurant', format('select public.add_to_cart(%s, 1)', fp), 'P0002');
@@ -71,8 +91,8 @@ begin
   update public.restaurants set is_open = true where id = ra;
   perform pg_temp.as_user(cu);
   o_a := public.place_order('{"street_address":"1 Rd","city":"PH","state":"Rivers"}'::jsonb, 'cash_on_delivery', za);
-  r := r || pg_temp.m('after ordering the cart has no restaurant, so another one can be used',
-    (select restaurant_id is null from public.carts where user_id = cu));
+  r := r || pg_temp.m('after ordering, that restaurant''s basket is empty',
+    (select count(*) from public.cart_items i join public.carts c on c.id = i.cart_id where c.user_id = cu and c.restaurant_id = ra) = 0);
   perform public.add_to_cart(fb, 1);
   o_b := public.place_order('{"street_address":"2 Rd","city":"PH","state":"Rivers"}'::jsonb, 'cash_on_delivery', zb);
   perform pg_temp.as_su();
