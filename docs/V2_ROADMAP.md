@@ -68,7 +68,7 @@ verification beyond admin approval, automated bank payouts.
 - Cart rule: one restaurant per cart; clear-cart prompt when switching.
 - Checkout and order pages show the restaurant; order emails and ratings carry it.
 
-### Phase 4: Restaurant dashboards and onboarding
+### Phase 4: Restaurant dashboards and onboarding (DONE 2026-11-26)
 - Staff/manager pages scope to their restaurant; owners manage menu, hours/open switch, delivery fee and areas, team.
 - Restaurant signup: a signed-in user applies (`submit_restaurant_application`); the owner membership exists but grants nothing until approval.
 - Admin approval queue: approve or reject with a reason, suspend or reinstate; a new email kind `restaurant_pending` goes to

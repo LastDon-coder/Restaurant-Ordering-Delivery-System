@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import AdminNav from '../components/AdminNav';
 import { Stars } from '../components/Stars';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
@@ -10,7 +11,7 @@ const TABS = [['pending', 'To approve'], ['approved', 'Published'], ['hidden', '
 const who = (a) => (a ? `${a.first_name} ${a.last_name}` : 'Customer');
 const when = (d) => new Date(d).toLocaleString();
 
-function FoodReviewModeration() {
+function FoodReviewModeration({ restaurantId }) {
   const [tab, setTab] = useState('pending');
   const [rows, setRows] = useState([]);
   const [state, setState] = useState('loading');
@@ -19,9 +20,9 @@ function FoodReviewModeration() {
 
   const load = useCallback(async (status) => {
     setState('loading');
-    try { setRows(await adminListFoodReviews(status)); setState('ready'); }
+    try { setRows(await adminListFoodReviews(status, restaurantId)); setState('ready'); }
     catch (e) { console.error(e); setNotice(friendlyDbError(e)); setState('error'); }
-  }, []);
+  }, [restaurantId]);
   useEffect(() => { load(tab); }, [tab, load]);
 
   async function act(id, status) {
@@ -62,15 +63,15 @@ function FoodReviewModeration() {
   );
 }
 
-function OrderRatings() {
+function OrderRatings({ restaurantId }) {
   const [rows, setRows] = useState([]);
   const [state, setState] = useState('loading');
   const [error, setError] = useState('');
   const load = useCallback(async () => {
     setState('loading');
-    try { setRows(await listOrderRatings()); setState('ready'); }
+    try { setRows(await listOrderRatings(restaurantId)); setState('ready'); }
     catch (e) { console.error(e); setError(friendlyDbError(e)); setState('error'); }
-  }, []);
+  }, [restaurantId]);
   useEffect(() => { load(); }, [load]);
 
   const avg = rows.length ? rows.reduce((s, r) => s + r.rating, 0) / rows.length : 0;
@@ -106,15 +107,18 @@ function OrderRatings() {
   );
 }
 
-// Staff and admins read order ratings; only admins moderate food reviews.
+// Everyone on the team reads order ratings; owners, managers and the platform admin moderate food reviews.
 export default function ReviewsPage() {
   const { role } = useAuth();
+  const ctx = useOutletContext();                    // inside the dashboard: that restaurant; admin: undefined = all
+  const restaurantId = ctx?.restaurant?.id ?? null;
+  const canModerate = role === 'admin' || ctx?.canManage === true;
   return (
     <section>
       {role === 'admin' && <AdminNav />}
       <h1>Reviews</h1>
-      {role === 'admin' && <FoodReviewModeration />}
-      <OrderRatings />
+      {canModerate && <FoodReviewModeration key={restaurantId ?? 'all'} restaurantId={restaurantId} />}
+      <OrderRatings key={restaurantId ?? 'all'} restaurantId={restaurantId} />
     </section>
   );
 }

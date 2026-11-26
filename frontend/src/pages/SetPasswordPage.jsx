@@ -4,7 +4,7 @@ import { Loading } from '../components/StateMessage';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
-const HOME = { staff: '/staff/orders', admin: '/staff/orders', rider: '/rider' };
+const HOME = { staff: '/restaurant/orders', admin: '/staff/orders', rider: '/rider' };
 
 // Landing page for the emailed invite link. Supabase signs the person in from the link,
 // then they choose their own password here.

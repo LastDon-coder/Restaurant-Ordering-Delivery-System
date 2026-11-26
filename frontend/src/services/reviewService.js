@@ -43,23 +43,28 @@ export async function getMyReviewsForOrder(orderId, orderItemIds) {
 }
 
 // ---- restaurant: order ratings (staff + admin) and food review moderation (admin) ----
-export async function listOrderRatings() {
-  const { data, error } = await supabase
+// restaurantId = limit to one restaurant (null = everything the caller may see, i.e. the platform admin's view)
+export async function listOrderRatings(restaurantId = null) {
+  let q = supabase
     .from('order_ratings')
-    .select('id, order_id, rating, delivery_rating, comment, created_at, author:profiles!user_id(first_name, last_name)')
+    .select(`id, order_id, rating, delivery_rating, comment, created_at, author:profiles!user_id(first_name, last_name), orders${restaurantId ? '!inner' : ''}(restaurant_id)`)
     .order('created_at', { ascending: false })
     .limit(100);
+  if (restaurantId) q = q.eq('orders.restaurant_id', restaurantId);
+  const { data, error } = await q;
   if (error) throw error;
   return data;
 }
 
-export async function adminListFoodReviews(status) {
-  const { data, error } = await supabase
+export async function adminListFoodReviews(status, restaurantId = null) {
+  let q = supabase
     .from('food_reviews')
-    .select('id, rating, comment, status, created_at, food:food_items(food_name), author:profiles!user_id(first_name, last_name)')
+    .select(`id, rating, comment, status, created_at, food:food_items${restaurantId ? '!inner' : ''}(food_name, restaurant_id), author:profiles!user_id(first_name, last_name)`)
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(100);
+  if (restaurantId) q = q.eq('food.restaurant_id', restaurantId);
+  const { data, error } = await q;
   if (error) throw error;
   return data;
 }

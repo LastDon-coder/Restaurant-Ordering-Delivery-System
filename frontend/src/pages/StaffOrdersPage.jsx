@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import OrderStatusTrack from '../components/OrderStatusTrack';
 import { ACTIVE, assignRider, listRiders, listStaffOrders, setOrderStatus } from '../services/orderService';
@@ -18,7 +19,7 @@ const FILTERS = [
   { key: 'all', label: 'All', statuses: null },
 ];
 
-function OrderRow({ order, riders, onChanged }) {
+function OrderRow({ order, riders, showRestaurant, onChanged }) {
   const pay = one(order.payments);
   const delivery = one(order.deliveries);
   const customer = one(order.profiles);
@@ -58,6 +59,7 @@ function OrderRow({ order, riders, onChanged }) {
         <strong>Order #{order.id}</strong>
         <span className="muted small">{new Date(order.created_at).toLocaleString()}</span>
       </div>
+      {showRestaurant && one(order.restaurants) && <p className="small">Restaurant: <strong>{one(order.restaurants).name}</strong></p>}
       <OrderStatusTrack status={order.order_status} />
       <p className="small">
         {customer ? `${customer.first_name} ${customer.last_name}` : 'Customer'}
@@ -153,6 +155,8 @@ function OrderRow({ order, riders, onChanged }) {
 }
 
 export default function StaffOrdersPage() {
+  const ctx = useOutletContext();                    // inside the restaurant dashboard: that restaurant; for the admin: undefined = all
+  const restaurantId = ctx?.restaurant?.id ?? null;
   const [filterKey, setFilterKey] = useState('active');
   const [orders, setOrders] = useState([]);
   const [riders, setRiders] = useState([]);
@@ -163,7 +167,7 @@ export default function StaffOrdersPage() {
     if (!quiet) setState('loading');
     try {
       const statuses = FILTERS.find((f) => f.key === filterKey).statuses;
-      const [o, r] = await Promise.all([listStaffOrders(statuses), listRiders()]);
+      const [o, r] = await Promise.all([listStaffOrders(statuses, restaurantId), listRiders()]);
       setOrders(o);
       setRiders(r);
       setState('ready');
@@ -172,7 +176,7 @@ export default function StaffOrdersPage() {
       setError(friendlyDbError(e));
       setState('error');
     }
-  }, [filterKey]);
+  }, [filterKey, restaurantId]);
 
   useEffect(() => {
     load();
@@ -198,7 +202,7 @@ export default function StaffOrdersPage() {
       {state === 'ready' && orders.length === 0 && <EmptyState title="No orders here" />}
       {state === 'ready' && orders.length > 0 && (
         <ul className="cart-list">
-          {orders.map((o) => <OrderRow key={`${o.id}-${o.order_status}`} order={o} riders={riders} onChanged={() => load(true)} />)}
+          {orders.map((o) => <OrderRow key={`${o.id}-${o.order_status}`} order={o} riders={riders} showRestaurant={!restaurantId} onChanged={() => load(true)} />)}
         </ul>
       )}
     </section>

@@ -38,12 +38,12 @@ export default function RestaurantShell() {
         </p>
       )}
       <nav className="tabs" aria-label="Restaurant">
-        <NavLink className="tab" to="/staff/orders">Orders</NavLink>
+        <NavLink className="tab" to="/restaurant/orders">Orders</NavLink>
         <NavLink className="tab" to="/restaurant" end>Settings</NavLink>
         {canManage && <NavLink className="tab" to="/restaurant/menu">Menu</NavLink>}
         {canManage && <NavLink className="tab" to="/restaurant/delivery">Delivery</NavLink>}
         {canManage && <NavLink className="tab" to="/restaurant/team">Team</NavLink>}
-        <NavLink className="tab" to="/staff/reviews">Reviews</NavLink>
+        <NavLink className="tab" to="/restaurant/reviews">Reviews</NavLink>
       </nav>
       <Outlet context={{ restaurant: current, canManage, live, reload }} />
     </section>

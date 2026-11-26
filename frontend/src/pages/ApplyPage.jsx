@@ -76,7 +76,7 @@ export default function ApplyPage() {
                   <span className={`pill ${a.status === 'active' ? 'pill-ok' : a.status === 'pending' ? 'pill-wait' : 'pill-cancelled'}`}>{LABEL[a.status]}</span>
                 </div>
                 {a.status_reason && <p className="small">Reason: {a.status_reason}</p>}
-                {a.status === 'active' && <p className="small"><Link to="/staff/orders">Open your dashboard</Link> (you may need to log in again)</p>}
+                {a.status === 'active' && <p className="small"><Link to="/restaurant">Open your dashboard</Link> (you may need to log in again)</p>}
               </li>
             ))}
           </ul>

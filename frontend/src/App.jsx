@@ -7,6 +7,7 @@ import RestaurantShell from './components/RestaurantShell';
 import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
 import RestaurantTeamPage from './pages/RestaurantTeamPage';
 import { RestaurantDeliveryPage, RestaurantMenuPage } from './pages/RestaurantManagePages';
+import StaffEntry from './components/StaffEntry';
 import ApplyPage from './pages/ApplyPage';
 import AdminRestaurantsPage from './pages/AdminRestaurantsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -51,14 +52,16 @@ export default function App() {
         <Route element={<ProtectedRoute roles={['staff']} />}>
           <Route path="restaurant" element={<RestaurantShell />}>
             <Route index element={<RestaurantSettingsPage />} />
+            <Route path="orders" element={<StaffOrdersPage />} />
+            <Route path="reviews" element={<ReviewsPage />} />
             <Route path="menu" element={<RestaurantMenuPage />} />
             <Route path="delivery" element={<RestaurantDeliveryPage />} />
             <Route path="team" element={<RestaurantTeamPage />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute roles={['staff', 'admin']} />}>
-          <Route path="staff/orders" element={<StaffOrdersPage />} />
-          <Route path="staff/reviews" element={<ReviewsPage />} />
+          <Route path="staff/orders" element={<StaffEntry to="/restaurant/orders"><StaffOrdersPage /></StaffEntry>} />
+          <Route path="staff/reviews" element={<StaffEntry to="/restaurant/reviews"><ReviewsPage /></StaffEntry>} />
         </Route>
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route path="admin/menu" element={<AdminMenuPage />} />

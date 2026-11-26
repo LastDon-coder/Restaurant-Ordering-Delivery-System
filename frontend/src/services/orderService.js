@@ -42,17 +42,18 @@ export async function cancelMyOrder(orderId) {
 // ---- staff / admin ----
 export const ACTIVE = ['pending', 'confirmed', 'preparing', 'ready_for_delivery', 'out_for_delivery'];
 
-export async function listStaffOrders(statuses) {
+export async function listStaffOrders(statuses, restaurantId = null) {
   let q = supabase
     .from('orders')
     .select(
-      'id, order_status, total_amount, delivery_fee, created_at, delivery_street_address, delivery_city, delivery_state, delivery_landmark, delivery_zone_name, ' +
+      'id, order_status, total_amount, delivery_fee, created_at, restaurants(name), delivery_street_address, delivery_city, delivery_state, delivery_landmark, delivery_zone_name, ' +
         'profiles(first_name, last_name, phone), order_items(id, food_name, quantity), ' +
         'payments(payment_method, payment_status), deliveries(rider_id, delivery_status)',
     )
     .order('created_at', { ascending: false })
     .limit(100);
   if (statuses) q = q.in('order_status', statuses);
+  if (restaurantId) q = q.eq('restaurant_id', restaurantId);
   const { data, error } = await q;
   if (error) throw error;
   return data;
