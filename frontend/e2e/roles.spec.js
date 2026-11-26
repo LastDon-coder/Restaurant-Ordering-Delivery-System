@@ -17,6 +17,7 @@ test('customer', async ({ page }) => {
   await page.goto('/apply');
   await expect(page.getByRole('heading', { name: 'Open a restaurant' })).toBeVisible();
   await blocked(page, '/admin/restaurants');
+  await blocked(page, '/restaurant');
   await blocked(page, '/staff/orders');
   await blocked(page, '/admin/delivery');
   await blocked(page, '/rider');
@@ -29,6 +30,8 @@ test('staff', async ({ page }) => {
   await page.goto('/staff/reviews');
   await expect(page.getByRole('heading', { name: 'Reviews', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0); // staff cannot moderate
+  await page.goto('/restaurant');
+  await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await blocked(page, '/admin/menu');
   await blocked(page, '/admin/restaurants');
   await blocked(page, '/apply');

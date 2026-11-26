@@ -3,6 +3,9 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminMenuPage from './pages/AdminMenuPage';
 import AdminRefundsPage from './pages/AdminRefundsPage';
+import RestaurantShell from './components/RestaurantShell';
+import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
+import RestaurantTeamPage from './pages/RestaurantTeamPage';
 import ApplyPage from './pages/ApplyPage';
 import AdminRestaurantsPage from './pages/AdminRestaurantsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -43,6 +46,12 @@ export default function App() {
           <Route path="orders" element={<MyOrdersPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="payment/callback" element={<PaymentCallbackPage />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['staff']} />}>
+          <Route path="restaurant" element={<RestaurantShell />}>
+            <Route index element={<RestaurantSettingsPage />} />
+            <Route path="team" element={<RestaurantTeamPage />} />
+          </Route>
         </Route>
         <Route element={<ProtectedRoute roles={['staff', 'admin']} />}>
           <Route path="staff/orders" element={<StaffOrdersPage />} />

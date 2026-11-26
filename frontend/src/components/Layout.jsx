@@ -30,6 +30,7 @@ export default function Layout() {
             {role === 'customer' && <NavLink to="/orders" end>My orders</NavLink>}
             {role === 'customer' && <NavLink to="/apply">Open a restaurant</NavLink>}
             {(role === 'staff' || role === 'admin') && <NavLink to="/staff/orders">Orders</NavLink>}
+            {role === 'staff' && <NavLink to="/restaurant">My restaurant</NavLink>}
             {role === 'staff' && <NavLink to="/staff/reviews">Reviews</NavLink>}
             {role === 'admin' && <NavLink to="/admin/menu">Admin</NavLink>}
             {role === 'rider' && <NavLink to="/rider">Deliveries</NavLink>}
