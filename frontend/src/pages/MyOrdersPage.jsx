@@ -46,6 +46,7 @@ export default function MyOrdersPage() {
                 <Link to={`/orders/${o.id}`}><strong>Order #{o.id}</strong></Link>
                 <span className="muted small">{new Date(o.created_at).toLocaleString()}</span>
               </div>
+              {one(o.restaurants) && <p className="small">From <strong>{one(o.restaurants).name}</strong></p>}
               <OrderStatusTrack status={o.order_status} />
               <p className="muted small">
                 {o.order_items.map((i) => `${i.quantity}× ${i.food_name}`).join(', ')}

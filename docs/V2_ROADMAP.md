@@ -63,7 +63,7 @@ verification beyond admin approval, automated bank payouts.
 - Added `add_restaurant_member` (staff cannot add anyone; manager adds staff; owner adds managers; admin appoints owners).
 - New `tenancy.test.sql`: staff of A cannot read, change, approve, refund or assign anything of B (expect 42501 / P0002 everywhere).
 
-### Phase 3: Customer side
+### Phase 3: Customer side (DONE 2026-11-26; order emails carrying the restaurant name moved to Phase 8)
 - Home page lists restaurants (open/closed, rating); `/r/<slug>` shows one menu; search by name.
 - Cart rule: one restaurant per cart; clear-cart prompt when switching.
 - Checkout and order pages show the restaurant; order emails and ratings carry it.

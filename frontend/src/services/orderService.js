@@ -13,7 +13,7 @@ export async function getOrder(orderId) {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, order_status, subtotal, delivery_fee, discount, total_amount, created_at, delivery_street_address, delivery_city, delivery_state, delivery_landmark, delivery_zone_name, ' +
+      'id, order_status, subtotal, delivery_fee, discount, total_amount, created_at, restaurants(name, slug), delivery_street_address, delivery_city, delivery_state, delivery_landmark, delivery_zone_name, ' +
         'order_items(id, food_name, quantity, price, subtotal), payments(payment_method, payment_status), order_status_history(to_status, reason, created_at)',
     )
     .eq('id', orderId)
@@ -26,7 +26,7 @@ export async function getOrder(orderId) {
 export async function listMyOrders() {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, order_status, total_amount, created_at, order_items(food_name, quantity), payments(payment_method, payment_status)')
+    .select('id, order_status, total_amount, created_at, restaurants(name, slug), order_items(food_name, quantity), payments(payment_method, payment_status)')
     .order('created_at', { ascending: false })
     .limit(100); // RLS already limits this to the signed-in customer's orders
   if (error) throw error;

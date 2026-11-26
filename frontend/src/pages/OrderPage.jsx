@@ -51,6 +51,7 @@ export default function OrderPage() {
   if (state === 'missing') return <EmptyState title="Order not found"><Link to="/">Back to the menu</Link></EmptyState>;
 
   const pay = one(order.payments); // one payment per order
+  const restaurant = one(order.restaurants);
   const closing = CLOSED.includes(order.order_status)
     ? [...(order.order_status_history ?? [])].filter((h) => h.to_status === order.order_status).sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
     : null;
@@ -59,6 +60,7 @@ export default function OrderPage() {
   return (
     <section>
       <h1>Order #{order.id}</h1>
+      {restaurant && <p className="muted">From <Link to={`/r/${restaurant.slug}`}>{restaurant.name}</Link></p>}
       <OrderStatusTrack status={order.order_status} />
       {closing?.reason && <p className="muted">Reason: {closing.reason}</p>}
       <p><strong>Payment:</strong> {pay ? `${label(pay.payment_method)} (${label(pay.payment_status)})` : '—'}</p>
