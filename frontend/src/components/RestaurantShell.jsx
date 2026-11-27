@@ -42,6 +42,7 @@ export default function RestaurantShell() {
         <NavLink className="tab" to="/restaurant" end>Settings</NavLink>
         {canManage && <NavLink className="tab" to="/restaurant/menu">Menu</NavLink>}
         {canManage && <NavLink className="tab" to="/restaurant/delivery">Delivery</NavLink>}
+        {canManage && <NavLink className="tab" to="/restaurant/sales">Sales</NavLink>}
         {canManage && <NavLink className="tab" to="/restaurant/team">Team</NavLink>}
         <NavLink className="tab" to="/restaurant/reviews">Reviews</NavLink>
       </nav>

@@ -17,6 +17,7 @@ test('customer', async ({ page }) => {
   await page.goto('/apply');
   await expect(page.getByRole('heading', { name: 'Open a restaurant' })).toBeVisible();
   await blocked(page, '/admin/restaurants');
+  await blocked(page, '/admin/reports');
   await blocked(page, '/restaurant');
   await blocked(page, '/staff/orders');
   await blocked(page, '/admin/delivery');
@@ -33,6 +34,7 @@ test('staff', async ({ page }) => {
   await page.goto('/restaurant');
   await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await blocked(page, '/admin/menu');
+  await blocked(page, '/admin/reports');
   await blocked(page, '/admin/restaurants');
   await blocked(page, '/apply');
   await blocked(page, '/cart');
@@ -54,6 +56,15 @@ test('admin', async ({ page }) => {
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   }
   await blocked(page, '/cart');
+});
+
+test('admin money page: totals, by-day table and the rate editor', async ({ page }) => {
+  await login(page, 'admin');
+  await page.goto('/admin/reports');
+  await expect(page.getByRole('heading', { name: 'Money', exact: true })).toBeVisible();
+  await expect(page.getByText('Platform income').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'By restaurant and commission rates' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' }).first()).toBeDisabled(); // nothing changed yet
 });
 
 test('the apply form checks its fields before sending anything', async ({ page }) => {

@@ -10,6 +10,8 @@ import { RestaurantDeliveryPage, RestaurantMenuPage } from './pages/RestaurantMa
 import StaffEntry from './components/StaffEntry';
 import ApplyPage from './pages/ApplyPage';
 import AdminRestaurantsPage from './pages/AdminRestaurantsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
+import RestaurantSalesPage from './pages/RestaurantSalesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminDeliveryPage from './pages/AdminDeliveryPage';
 import ReviewsPage from './pages/ReviewsPage';
@@ -56,6 +58,7 @@ export default function App() {
             <Route path="reviews" element={<ReviewsPage />} />
             <Route path="menu" element={<RestaurantMenuPage />} />
             <Route path="delivery" element={<RestaurantDeliveryPage />} />
+            <Route path="sales" element={<RestaurantSalesPage />} />
             <Route path="team" element={<RestaurantTeamPage />} />
           </Route>
         </Route>
@@ -66,6 +69,7 @@ export default function App() {
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route path="admin/menu" element={<AdminMenuPage />} />
           <Route path="admin/delivery" element={<AdminDeliveryPage />} />
+          <Route path="admin/reports" element={<AdminReportsPage />} />
           <Route path="admin/refunds" element={<AdminRefundsPage />} />
           <Route path="admin/restaurants" element={<AdminRestaurantsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
