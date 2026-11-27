@@ -56,7 +56,7 @@ function InviteForm({ onInvited }) {
             <label>Last name<input value={v.last_name} onChange={(e) => setV({ ...v, last_name: e.target.value })} maxLength={100} />{errors.last_name && <span className="field-error">{errors.last_name}</span>}</label>
           </div>
           <label>Email<input type="email" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} />{errors.email && <span className="field-error">{errors.email}</span>}</label>
-          <label>Role<select value={v.role} onChange={(e) => setV({ ...v, role: e.target.value })}><option value="staff">Staff (manages orders)</option><option value="rider">Rider (delivers orders)</option></select></label>
+          <label>Role<select value={v.role} onChange={(e) => setV({ ...v, role: e.target.value })}><option value="staff">Restaurant staff (needs a team, see note)</option><option value="rider">Rider (delivers orders)</option></select></label>
           <div className="inline-actions">
             <button className="btn btn-small" disabled={busy}>{busy ? 'Sending…' : 'Send invitation'}</button>
             <button type="button" className="btn btn-ghost btn-small" onClick={() => setOpen(false)} disabled={busy}>Cancel</button>
@@ -124,6 +124,7 @@ export default function AdminUsersPage() {
       <AdminNav />
       <h1>Users & roles</h1>
       <p className="muted small">Invite new staff or riders by email, or change the role of an existing account. Deactivated people are locked out immediately.</p>
+      <p className="muted small">Note: a staff account can only see a restaurant's orders after an owner or manager adds it to that restaurant's team (Restaurant → Team). Riders work for the whole platform and need no team.</p>
       <InviteForm onInvited={() => load(true)} />
       <form className="inline-actions" onSubmit={(e) => { e.preventDefault(); setQ(search.trim()); }}>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email" aria-label="Search users" />

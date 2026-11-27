@@ -16,6 +16,12 @@ cross-restaurant foreign keys, the membership helper functions, who can see pend
 `tenancy.test.sql` (80 checks) covers version 2 Phase 2: two restaurants try to read or change each other's orders, menu, fees,
 reviews, refunds, deliveries and team. Staff cannot add team members; managers add staff to their own restaurant only.
 
+`restaurant_applications.test.sql` (38 checks) covers version 2 Phase 4a: who may apply, the pending restaurant that grants nothing,
+admin-only decisions and their allowed transitions, the owner's account becoming a staff account on approval, and the emails queued.
+
+`restaurant_dashboard.test.sql` (41 checks) covers version 2 Phase 4b: the restaurant's own team editing details, the open switch,
+the delivery fee and the team (add by email, remove), and that nobody can do any of it for another restaurant.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.

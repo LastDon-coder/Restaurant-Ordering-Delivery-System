@@ -55,3 +55,12 @@ test('admin', async ({ page }) => {
   }
   await blocked(page, '/cart');
 });
+
+test('the apply form checks its fields before sending anything', async ({ page }) => {
+  await login(page, 'customer');
+  await page.goto('/apply');
+  await expect(page.getByRole('heading', { name: 'Open a restaurant' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send application' }).click(); // empty form: nothing is sent, so no test data is created
+  await expect(page.getByText('At least 2 characters')).toBeVisible();
+  await expect(page.getByText('Required').first()).toBeVisible();
+});
