@@ -25,6 +25,9 @@ the delivery fee and the team (add by email, remove), and that nobody can do any
 `ledger.test.sql` (about 40 checks) covers version 2 Phase 5a: ledger rows written when an online order is paid or a cash order is delivered,
 the money split, rate snapshots, reversal on refund, who can read the ledger, and that only an admin can set commission.
 
+`reports.test.sql` (about 30 checks) covers version 2 Phase 5b: the money reports (totals, sales by day, by restaurant, who owes whom),
+who may ask (admin: all; owner/manager: own restaurant; everyone else refused) and the date-range checks.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.
