@@ -77,7 +77,7 @@ verification beyond admin approval, automated bank payouts.
 - Per-restaurant reviews moderation (restaurant manager) with platform admin override.
 
 ### Phase 5: Money (5a database DONE; 5b reports, 5c screens next)
-- Rules: commission = restaurant % of the whole order total (capped at the food amount), set by admin only; platform keeps the delivery fee; online orders count when paid, cash orders when delivered; refunds reverse the row.
+- Rules: two admin-set rates per restaurant (default 10% of the food and 10% of the delivery fee), the restaurant keeps the rest; online orders count when paid, cash orders when delivered; refunds reverse the row.
 - `order_ledger` rows (gross, commission, restaurant share) created when an order is paid.
 - Admin and owner reports: sales by day, by restaurant, commission owed; export to CSV.
 - Optional later: Paystack split payments.

@@ -43,21 +43,23 @@ begin
 
   ---------- commission setting: admin only ----------
   perform pg_temp.as_user(ma);
-  r := r || pg_temp.expect('a manager cannot set commission', format('select public.admin_set_commission(%s, 10)', ra), '42501');
+  r := r || pg_temp.expect('a manager cannot set commission', format('select public.admin_set_commission(%s, 10, 10)', ra), '42501');
   perform pg_temp.as_user(oa);
-  r := r || pg_temp.expect('an owner cannot set commission either', format('select public.admin_set_commission(%s, 10)', ra), '42501');
+  r := r || pg_temp.expect('an owner cannot set commission either', format('select public.admin_set_commission(%s, 10, 10)', ra), '42501');
   perform pg_temp.as_user(cu);
-  r := r || pg_temp.expect('a customer cannot set commission', format('select public.admin_set_commission(%s, 10)', ra), '42501');
+  r := r || pg_temp.expect('a customer cannot set commission', format('select public.admin_set_commission(%s, 10, 10)', ra), '42501');
   perform pg_temp.as_anon();
-  r := r || pg_temp.expect('anonymous cannot set commission', format('select public.admin_set_commission(%s, 10)', ra), '42501');
+  r := r || pg_temp.expect('anonymous cannot set commission', format('select public.admin_set_commission(%s, 10, 10)', ra), '42501');
   perform pg_temp.as_user(ad);
-  r := r || pg_temp.expect('admin: 101 is refused', format('select public.admin_set_commission(%s, 101)', ra), '22023');
-  r := r || pg_temp.expect('admin: -1 is refused', format('select public.admin_set_commission(%s, -1)', ra), '22023');
-  r := r || pg_temp.expect('admin: unknown restaurant', 'select public.admin_set_commission(999999999, 5)', 'P0002');
-  r := r || pg_temp.expect('admin sets A to 10%', format('select public.admin_set_commission(%s, 10)', ra), 'ok');
+  r := r || pg_temp.expect('admin: 101 is refused', format('select public.admin_set_commission(%s, 101, 10)', ra), '22023');
+  r := r || pg_temp.expect('admin: a delivery rate of 101 is refused', format('select public.admin_set_commission(%s, 10, 101)', ra), '22023');
+  r := r || pg_temp.expect('admin: a missing delivery rate is refused', format('select public.admin_set_commission(%s, 10, null)', ra), '22023');
+  r := r || pg_temp.expect('admin: -1 is refused', format('select public.admin_set_commission(%s, -1, 10)', ra), '22023');
+  r := r || pg_temp.expect('admin: unknown restaurant', 'select public.admin_set_commission(999999999, 5, 5)', 'P0002');
+  r := r || pg_temp.expect('admin sets A to 10% food / 10% delivery', format('select public.admin_set_commission(%s, 10, 10)', ra), 'ok');
   perform pg_temp.as_su();
-  r := r || pg_temp.m('...saved on the restaurant', (select commission_percent = 10 from public.restaurants where id = ra));
-  r := r || pg_temp.m('B still has the default 0%', (select commission_percent = 0 from public.restaurants where id = rb));
+  r := r || pg_temp.m('...saved on the restaurant', (select commission_percent = 10 and delivery_commission_percent = 10 from public.restaurants where id = ra));
+  r := r || pg_temp.m('B has the default 10% / 10%', (select commission_percent = 10 and delivery_commission_percent = 10 from public.restaurants where id = rb));
 
   ---------- online order: counts when paid ----------
   o1 := pg_temp.mk(cu, ra, 1000, 200, 'online');
@@ -66,17 +68,17 @@ begin
   select * into l from public.order_ledger where order_id = o1;
   r := r || pg_temp.m('paid online order is in the ledger', l.id is not null and l.status = 'earned');
   r := r || pg_temp.m('gross 1200 = food 1000 + fee 200', l.gross = 1200 and l.food_amount = 1000 and l.delivery_fee = 200);
-  r := r || pg_temp.m('commission is 10% of the WHOLE total (120)', l.commission = 120 and l.commission_rate = 10);
-  r := r || pg_temp.m('restaurant share = food - commission (880)', l.restaurant_share = 880);
-  r := r || pg_temp.m('platform income = commission + delivery fee (320)', l.platform_income = 320);
+  r := r || pg_temp.m('10% of the food = 100, 10% of the delivery fee = 20', l.commission = 100 and l.delivery_commission = 20 and l.commission_rate = 10 and l.delivery_commission_rate = 10);
+  r := r || pg_temp.m('restaurant keeps the rest (1080)', l.restaurant_share = 1080);
+  r := r || pg_temp.m('platform income = 120', l.platform_income = 120);
   perform private.ledger_record(o1);
   r := r || pg_temp.m('recording again changes nothing (idempotent)', (select count(*) = 1 from public.order_ledger where order_id = o1));
 
   ---------- rate changes never rewrite history ----------
   perform pg_temp.as_user(ad);
-  perform public.admin_set_commission(ra, 50);
+  perform public.admin_set_commission(ra, 50, 20);
   perform pg_temp.as_su();
-  r := r || pg_temp.m('old row keeps its 10% snapshot after the rate changed to 50%', (select commission_rate = 10 and commission = 120 from public.order_ledger where order_id = o1));
+  r := r || pg_temp.m('old row keeps its 10% snapshot after the rates changed to 50% / 20%', (select commission_rate = 10 and commission = 100 and delivery_commission = 20 from public.order_ledger where order_id = o1));
 
   ---------- cash on delivery: counts when delivered ----------
   o2 := pg_temp.mk(cu, ra, 500, 100, 'cash_on_delivery');
@@ -86,8 +88,8 @@ begin
   r := r || pg_temp.m('...nor while out for delivery', not exists (select 1 from public.order_ledger where order_id = o2));
   update public.orders set order_status = 'delivered' where id = o2;
   select * into l from public.order_ledger where order_id = o2;
-  r := r || pg_temp.m('delivered cash order is in the ledger at the NEW rate (50%)', l.id is not null and l.commission_rate = 50 and l.commission = 300);
-  r := r || pg_temp.m('...share 200 + commission 300 + fee 100 = gross 600', l.restaurant_share = 200 and l.gross = 600);
+  r := r || pg_temp.m('delivered cash order uses the NEW rates (50% of 500 = 250, 20% of 100 = 20)', l.id is not null and l.commission = 250 and l.delivery_commission = 20);
+  r := r || pg_temp.m('...restaurant share 330 and platform 270 add up to gross 600', l.restaurant_share = 330 and l.platform_income = 270 and l.gross = 600);
 
   o3 := pg_temp.mk(cu, ra, 400, 100, 'cash_on_delivery');
   update public.orders set order_status = 'cancelled' where id = o3;
@@ -98,15 +100,15 @@ begin
   update public.orders set order_status = 'delivered' where id = o1;
   r := r || pg_temp.m('delivering a paid online order does not duplicate it', (select count(*) = 1 from public.order_ledger where order_id = o1));
 
-  ---------- commission can never exceed the food amount ----------
+  ---------- the two rates are independent and can go to the limits ----------
   perform pg_temp.as_user(ad);
-  perform public.admin_set_commission(rb, 100);
+  perform public.admin_set_commission(rb, 100, 0);
   perform pg_temp.as_su();
   o4 := pg_temp.mk(cu, rb, 100, 50, 'online');
   update public.payments set payment_status = 'paid', paid_at = now(), transaction_reference = 'ORD-' || o4 || '-bbbbbbbbbbbbbbbb' where order_id = o4;
   select * into l from public.order_ledger where order_id = o4;
-  r := r || pg_temp.m('100% rate: commission capped at the food amount (100), restaurant gets 0', l.commission = 100 and l.restaurant_share = 0);
-  r := r || pg_temp.m('...platform keeps 150 and the split still adds up', l.platform_income = 150 and l.gross = 150);
+  r := r || pg_temp.m('100% food / 0% delivery: platform takes the food (100), restaurant keeps the fee (50)', l.commission = 100 and l.delivery_commission = 0 and l.restaurant_share = 50);
+  r := r || pg_temp.m('...and the split still adds up to gross 150', l.platform_income = 100 and l.gross = 150);
 
   ---------- refunds reverse ----------
   update public.payments set payment_status = 'refunded' where order_id = o1;
@@ -131,7 +133,7 @@ begin
 
   ---------- nobody can write it directly ----------
   perform pg_temp.as_user(oa);
-  r := r || pg_temp.expect('an owner cannot insert a ledger row', format('insert into public.order_ledger (order_id, restaurant_id, payment_method, gross, food_amount, delivery_fee, commission_rate, commission, restaurant_share) values (%s, %s, ''online'', 1, 1, 0, 0, 0, 1)', o3, ra), '42501');
+  r := r || pg_temp.expect('an owner cannot insert a ledger row', format('insert into public.order_ledger (order_id, restaurant_id, payment_method, gross, food_amount, delivery_fee, commission_rate, delivery_commission_rate, commission, delivery_commission, restaurant_share) values (%s, %s, ''online'', 1, 1, 0, 0, 0, 0, 0, 1)', o3, ra), '42501');
   r := r || pg_temp.expect('an owner cannot edit a ledger row', format('update public.order_ledger set restaurant_share = 999999 where order_id = %s', o1), '42501');
   perform pg_temp.as_user(ad);
   r := r || pg_temp.expect('not even the admin can delete a ledger row', format('delete from public.order_ledger where order_id = %s', o1), '42501');
