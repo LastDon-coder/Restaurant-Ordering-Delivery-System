@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
+import PayoutsPanel from '../components/PayoutsPanel';
 import ReportView from '../components/ReportView';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
-import { getByRestaurant, setCommission } from '../services/reportService';
+import { getBalances, getByRestaurant, setCommission } from '../services/reportService';
 import { downloadCsv, toCsv } from '../utils/csv';
 import { friendlyDbError } from '../utils/errors';
 import { formatMoney } from '../utils/format';
@@ -61,6 +62,60 @@ function RateRow({ r, onSaved }) {
   );
 }
 
+// Who owes whom right now (all time), and the payout panel for the restaurant you open.
+function BalancesSection() {
+  const [rows, setRows] = useState([]);
+  const [state, setState] = useState('loading');
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState(null);
+
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setState('loading');
+    try {
+      setRows(await getBalances());
+      setState('ready');
+    } catch (e) {
+      console.error(e);
+      setError(friendlyDbError(e));
+      setState('error');
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const opened = rows.find((r) => r.restaurant_id === open);
+  return (
+    <div>
+      <h2>Balances and payouts</h2>
+      <p className="muted small">All-time. Online orders: the platform holds the money and owes the restaurant its share. Cash orders: the restaurant holds the cash and owes the platform its commission.</p>
+      {state === 'loading' && <Loading label="Loading balances…" />}
+      {state === 'error' && <ErrorMessage message={error} onRetry={load} />}
+      {state === 'ready' && rows.length === 0 && <EmptyState title="No restaurants yet">Approve an application first.</EmptyState>}
+      {state === 'ready' && rows.length > 0 && (
+        <div className="table-wrap">
+          <table className="report-table">
+            <thead><tr><th>Restaurant</th><th>Outstanding</th><th>Paid to restaurant</th><th>Paid to platform</th><th /></tr></thead>
+            <tbody>
+              {rows.map((b) => {
+                const o = Number(b.outstanding);
+                return (
+                  <tr key={b.restaurant_id}>
+                    <td>{b.name}</td>
+                    <td>{o === 0 ? 'Settled' : `${formatMoney(Math.abs(o))} ${o > 0 ? '(platform owes)' : '(restaurant owes)'}`}</td>
+                    <td>{formatMoney(b.paid_to_restaurant)}</td>
+                    <td>{formatMoney(b.paid_to_platform)}</td>
+                    <td><button type="button" className="btn btn-small btn-ghost" onClick={() => setOpen(open === b.restaurant_id ? null : b.restaurant_id)}>{open === b.restaurant_id ? 'Close' : 'Payouts'}</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {opened && <PayoutsPanel key={opened.restaurant_id} restaurantId={opened.restaurant_id} name={opened.name} canRecord onChange={() => load(true)} />}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [from, setFrom] = useState(() => lagosDay(-29));
   const [to, setTo] = useState(() => lagosDay());
@@ -87,6 +142,8 @@ export default function AdminReportsPage() {
       <h1>Money</h1>
       <h2>All restaurants</h2>
       <ReportView restaurantId={null} title="Platform sales by day" />
+
+      <BalancesSection />
 
       <div className="order-head">
         <h2>By restaurant and commission rates</h2>

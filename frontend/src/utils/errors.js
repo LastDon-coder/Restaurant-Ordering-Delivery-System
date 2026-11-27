@@ -16,6 +16,7 @@ export function friendlyAuthError(error) {
 export function friendlyDbError(error) {
   const code = error?.code;
   if (code === '22023' || code === '55000') return error.message;
+  if (code === '23505') return 'That has already been recorded.';
   if (code === '23514') return 'You can order at most 50 of one item.';
   if (code === 'P0002') return 'That item is no longer available.';
   if (code === '28000' || code === 'PGRST301' || (error?.message || '').toLowerCase().includes('jwt')) return 'Please log in again.';

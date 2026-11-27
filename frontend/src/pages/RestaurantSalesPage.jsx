@@ -1,4 +1,5 @@
 import { Navigate, useOutletContext } from 'react-router-dom';
+import PayoutsPanel from '../components/PayoutsPanel';
 import ReportView from '../components/ReportView';
 
 // The owner's / manager's view of their own restaurant's money. The server refuses anyone else.
@@ -12,6 +13,8 @@ export default function RestaurantSalesPage() {
         The platform keeps {Number(restaurant.commission_percent ?? 10)}% of the food and {Number(restaurant.delivery_commission_percent ?? 10)}% of the delivery fee. Orders count when an online payment is confirmed or a cash order is delivered.
       </p>
       <ReportView key={restaurant.id} restaurantId={restaurant.id} />
+      <h2>Balance and payouts</h2>
+      <PayoutsPanel key={`p${restaurant.id}`} restaurantId={restaurant.id} name={restaurant.name} />
     </section>
   );
 }

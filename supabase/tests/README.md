@@ -28,6 +28,9 @@ the money split, rate snapshots, reversal on refund, who can read the ledger, an
 `reports.test.sql` (about 30 checks) covers version 2 Phase 5b: the money reports (totals, sales by day, by restaurant, who owes whom),
 who may ask (admin: all; owner/manager: own restaurant; everyone else refused) and the date-range checks.
 
+`payouts.test.sql` (about 40 checks) covers version 2 Phase 5d: only the admin records or voids payouts, the direction and size limits,
+settling a balance to exactly 0, voiding, the payout history, and that nobody writes the table directly.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.

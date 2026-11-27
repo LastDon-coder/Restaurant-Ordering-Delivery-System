@@ -164,3 +164,7 @@ a.tab.active { color: #fff; }
 .rate-form { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: flex-end; }
 .rate-form label { display: flex; flex-direction: column; gap: 2px; }
 .rate-form input { width: 5.5rem; }
+.payout-form { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin: 10px 0; }
+.payout-form > strong { flex-basis: 100%; }
+.payout-form label { display: flex; flex-direction: column; gap: 2px; }
+.payouts h3 { margin-top: 16px; }
