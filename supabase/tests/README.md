@@ -22,6 +22,9 @@ admin-only decisions and their allowed transitions, the owner's account becoming
 `restaurant_dashboard.test.sql` (41 checks) covers version 2 Phase 4b: the restaurant's own team editing details, the open switch,
 the delivery fee and the team (add by email, remove), and that nobody can do any of it for another restaurant.
 
+`ledger.test.sql` (about 40 checks) covers version 2 Phase 5a: ledger rows written when an online order is paid or a cash order is delivered,
+the money split, rate snapshots, reversal on refund, who can read the ledger, and that only an admin can set commission.
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.
