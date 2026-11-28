@@ -130,8 +130,10 @@ begin
   perform pg_temp.as_user(ow);
   r := r || pg_temp.expect('owner cannot approve or edit the restaurant row directly (functions come in Phase 4)',
     format('update public.restaurants set commission_percent = 50 where id = %s', rb), 'ok');
+  perform pg_temp.as_su();   -- since the privacy fix an owner cannot read commission_percent directly
   r := r || pg_temp.m('...and nothing changed (the policy hid the row from the update)',
     (select commission_percent from public.restaurants where id = rb) = 0);
+  perform pg_temp.as_user(ow);
   r := r || pg_temp.expect('owner cannot add team members directly', format('insert into public.restaurant_members values (%s, %L, %L)', rb, cu, 'staff'), '42501');
   perform pg_temp.as_user(sf);
   r := r || pg_temp.expect('staff cannot add team members', format('insert into public.restaurant_members values (%s, %L, %L)', rb, cu, 'staff'), '42501');

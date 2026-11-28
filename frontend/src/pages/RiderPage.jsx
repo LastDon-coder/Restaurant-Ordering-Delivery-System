@@ -33,6 +33,9 @@ function Job({ job, onChanged }) {
         <strong>Order #{job.order_id}</strong>
         <span className={`pill ${job.delivery_status === 'picked_up' ? 'pill-ok' : 'pill-wait'}`}>{job.delivery_status === 'picked_up' ? 'On the way' : 'To pick up'}</span>
       </div>
+      {job.restaurant && (
+        <p className="small"><strong>Pick up from {job.restaurant.name}</strong>{job.restaurant.address ? `, ${job.restaurant.address}` : ''}{job.restaurant.phone && <> · <a href={`tel:${job.restaurant.phone}`}>{job.restaurant.phone}</a></>}</p>
+      )}
       <p>{job.customer.name}{job.customer.phone && <> · <a href={`tel:${job.customer.phone}`}>{job.customer.phone}</a></>}</p>
       <p className="small">{a.street_address}, {a.city}, {a.state}{a.landmark ? ` (${a.landmark})` : ''}</p>
       <p className="small">Area: <strong>{job.zone_name ?? 'Other area'}</strong> · Delivery fee {formatMoney(job.delivery_fee)}</p>

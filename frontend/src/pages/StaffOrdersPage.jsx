@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import OrderStatusTrack from '../components/OrderStatusTrack';
 import { ACTIVE, assignRider, listRiders, listStaffOrders, setOrderStatus } from '../services/orderService';
+import { requestRefund } from '../services/refundRequestService';
 import { friendlyDbError } from '../utils/errors';
 import { formatMoney } from '../utils/format';
 import { CAN_ASSIGN, STAFF_ACTIONS, one, statusLabel } from '../utils/orders';
@@ -19,13 +20,16 @@ const FILTERS = [
   { key: 'all', label: 'All', statuses: null },
 ];
 
-function OrderRow({ order, riders, showRestaurant, onChanged }) {
+function OrderRow({ order, riders, showRestaurant, canRequestRefund, onChanged }) {
   const pay = one(order.payments);
   const delivery = one(order.deliveries);
   const customer = one(order.profiles);
   const actions = STAFF_ACTIONS[order.order_status] ?? [];
   const unpaidOnline = pay?.payment_method === 'online' && pay?.payment_status !== 'paid';
 
+  const canAskRefund = canRequestRefund && pay?.payment_method === 'online' && pay?.payment_status === 'paid';
+  const [askingRefund, setAskingRefund] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
   const [reasonFor, setReasonFor] = useState(null); // the action awaiting a reason
   const [reason, setReason] = useState('');
   const [riderId, setRiderId] = useState(delivery?.rider_id ?? '');
@@ -149,6 +153,16 @@ function OrderRow({ order, riders, showRestaurant, onChanged }) {
       {!CAN_ASSIGN.includes(order.order_status) && delivery && (
         <p className="small">Rider: <strong>{riderName(delivery.rider_id)}</strong> ({statusLabel(delivery.delivery_status)})</p>
       )}
+      {canAskRefund && !askingRefund && (
+        <div className="inline-actions"><button type="button" className="btn btn-small btn-ghost" onClick={() => setAskingRefund(true)}>Request refund</button></div>
+      )}
+      {askingRefund && (
+        <form className="inline-actions" onSubmit={(e) => { e.preventDefault(); if (refundReason.trim()) run(async () => { await requestRefund(order.id, refundReason.trim()); setAskingRefund(false); setRefundReason(''); }); }}>
+          <input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="Why should this be refunded? (sent to the platform admin)" maxLength={255} aria-label="Refund request reason" autoFocus />
+          <button className="btn btn-small" type="submit" disabled={busy || !refundReason.trim()}>Send request</button>
+          <button className="btn btn-small btn-ghost" type="button" onClick={() => setAskingRefund(false)} disabled={busy}>Back</button>
+        </form>
+      )}
       {error && <p className="field-error" role="alert">{error}</p>}
     </li>
   );
@@ -202,7 +216,7 @@ export default function StaffOrdersPage() {
       {state === 'ready' && orders.length === 0 && <EmptyState title="No orders here" />}
       {state === 'ready' && orders.length > 0 && (
         <ul className="cart-list">
-          {orders.map((o) => <OrderRow key={`${o.id}-${o.order_status}`} order={o} riders={riders} showRestaurant={!restaurantId} onChanged={() => load(true)} />)}
+          {orders.map((o) => <OrderRow key={`${o.id}-${o.order_status}`} order={o} riders={riders} showRestaurant={!restaurantId} canRequestRefund={Boolean(ctx?.canManage)} onChanged={() => load(true)} />)}
         </ul>
       )}
     </section>

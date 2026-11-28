@@ -60,12 +60,12 @@ begin
   r := r || pg_temp.m('owner A sees bank, name and last 4 only', s ->> 'bank_name' = 'Test Bank' and s ->> 'account_last4' = '1234' and (s ? 'account_number') = false and (s ->> 'active')::boolean);
   r := r || pg_temp.expect('owner A cannot see B''s connection', format('select public.get_settlement(%s)', rb), '42501');
   r := r || pg_temp.expect('an owner cannot list all settlements', 'select public.admin_list_settlements()', '42501');
-  r := r || pg_temp.m('owner A reads only their own row in the table', (select count(*) = 1 from public.restaurant_settlement));
+  r := r || pg_temp.expect('an owner cannot read the settlement table directly (only get_settlement)', 'select * from public.restaurant_settlement', '42501');
   r := r || pg_temp.expect('an owner cannot write the table', format('update public.restaurant_settlement set active = false where restaurant_id = %s', ra), '42501');
   perform pg_temp.as_user(sa);
   r := r || pg_temp.expect('plain staff cannot see the connection', format('select public.get_settlement(%s)', ra), '42501');
   perform pg_temp.as_user(ob);
-  r := r || pg_temp.m('owner B sees no settlement rows', (select count(*) = 0 from public.restaurant_settlement));
+  r := r || pg_temp.expect('owner B cannot read the settlement table either', 'select * from public.restaurant_settlement', '42501');
   perform pg_temp.as_user(ad);
   r := r || pg_temp.m('admin: B has no connection (null)', public.get_settlement(rb) is null or public.get_settlement(rb) = 'null'::jsonb);
   r := r || pg_temp.m('admin list: Alpha connected, Beta not', (select bool_and(case when (e ->> 'restaurant_id')::bigint = ra then (e ->> 'connected')::boolean

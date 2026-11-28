@@ -1,6 +1,6 @@
 # Version 2 roadmap: multiple restaurants + live tracking
 
-Status: DRAFT, decisions 1-3 confirmed by Andrew on 2026-11-10; the rest are proposed defaults. Nothing here is built yet. Build order matters: each phase depends on the one before it.
+Status: Phases 1-5 are built and audited (2026-11-28); phases 6-9 remain. Money decisions (10% food + 10% delivery commission, admin-set; Paystack split payments; admin-recorded payouts) were confirmed by Andrew. Build order matters: each phase depends on the one before it.
 We build one phase at a time, with a way to test it at the end of each (same as version 1).
 
 ## Goal

@@ -35,6 +35,8 @@ settling a balance to exactly 0, voiding, the payout history, and that nobody wr
 gives Paystack, rates frozen at the moment a payment starts, how split orders are booked and kept out of the balance, the fallbacks,
 and who can see the connection. (The Paystack calls themselves need Paystack TEST mode.)
 
+`audit_fixes.test.sql` (34 checks) covers the Phase 1-5 audit fixes: commission rates and other private restaurant columns are not readable by the public or by owners directly, riders see the pickup restaurant, and manager-to-admin refund requests (who may ask, one open request per order, dismiss with a note, auto-close when the payment is refunded).
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.

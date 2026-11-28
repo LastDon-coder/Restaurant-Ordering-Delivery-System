@@ -40,7 +40,7 @@ export async function listOnlinePayments() {
   const [pay, ref] = await Promise.all([
     supabase
       .from('payments')
-      .select('id, order_id, amount, payment_status, paid_at, orders(order_status, profiles(first_name, last_name))')
+      .select('id, order_id, amount, payment_status, paid_at, orders(order_status, restaurants(name), profiles(first_name, last_name))')
       .eq('payment_method', 'online')
       .in('payment_status', ['paid', 'refunded'])
       .order('paid_at', { ascending: false })
