@@ -84,6 +84,9 @@ export default function ReportView({ restaurantId, title }) {
               note={balance === 0 ? 'Nothing owed' : balance > 0 ? 'Platform owes the restaurant (online sales)' : 'Restaurant owes the platform (cash sales)'}
             />
           </div>
+          {summary.split_orders > 0 && (
+            <p className="muted small">{summary.split_orders} online order(s) were split by Paystack: {formatMoney(summary.split_share)} went straight to the restaurant, so they are not part of the balance.</p>
+          )}
           {summary.refunded_orders > 0 && (
             <p className="muted small">{summary.refunded_orders} refunded order(s), {formatMoney(summary.refunded_gross)}, are not counted above.</p>
           )}

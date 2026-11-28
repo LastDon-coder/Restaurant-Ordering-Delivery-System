@@ -78,19 +78,37 @@ async function initialize(userId: string, body: Record<string, unknown>, fronten
   const { data: start, error } = await admin.rpc('pay_start', { p_user: userId, p_order_id: orderId })
   if (error) return dbError(error)
 
+  // Split payment: if the restaurant has a connected Paystack subaccount, the platform keeps a FLAT amount (its commission,
+  // worked out by the database) and Paystack settles the rest straight to the restaurant. bearer:'subaccount' makes the
+  // restaurant carry Paystack's fee. Everything here comes from our database, never from the request.
+  const base = {
+    email: start.email,
+    amount: start.amount_kobo,
+    currency: 'NGN',
+    reference: start.reference,
+    callback_url: Deno.env.get('PAYSTACK_CALLBACK_URL') ?? `${frontend}/payment/callback`,
+    metadata: { order_id: start.order_id },
+  }
+  const attempt = async (split: boolean) =>
+    await paystack('/transaction/initialize', {
+      method: 'POST',
+      body: JSON.stringify(split
+        ? { ...base, subaccount: start.subaccount, transaction_charge: start.platform_kobo, bearer: 'subaccount' }
+        : base),
+    })
+
   let res: Response
   try {
-    res = await paystack('/transaction/initialize', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: start.email,
-        amount: start.amount_kobo,
-        currency: 'NGN',
-        reference: start.reference,
-        callback_url: Deno.env.get('PAYSTACK_CALLBACK_URL') ?? `${frontend}/payment/callback`,
-        metadata: { order_id: start.order_id },
-      }),
-    })
+    res = await attempt(Boolean(start.subaccount))
+    if (!res.ok && start.subaccount) {
+      // Paystack can refuse a split (for example the fee is bigger than the restaurant's share on a tiny order). Do not
+      // block the customer: start an ordinary payment and clear the split terms so the books match what really happens.
+      const refused = await res.clone().json().catch(() => null)
+      console.error('paystack split refused, falling back to a normal payment', res.status, refused?.message)
+      const { error: clearError } = await admin.rpc('pay_clear_split', { p_reference: start.reference })
+      if (clearError) return dbError(clearError)
+      res = await attempt(false)
+    }
   } catch (e) {
     console.error('paystack initialize failed', e)
     return respond(502, 'Could not reach the payment provider. Please try again.')

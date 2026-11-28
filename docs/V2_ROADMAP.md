@@ -80,7 +80,7 @@ verification beyond admin approval, automated bank payouts.
 - Rules: two admin-set rates per restaurant (default 10% of the food and 10% of the delivery fee), the restaurant keeps the rest; online orders count when paid, cash orders when delivered; refunds reverse the row.
 - `order_ledger` rows (gross, commission, restaurant share) created when an order is paid.
 - Admin and owner reports: sales by day, by restaurant, commission owed; export to CSV.
-- Optional later: Paystack split payments.
+- DONE: payouts (5d) and Paystack split payments (5e): admin connects a restaurant bank account; split orders are settled by Paystack, others through balances and payouts.
 
 ### Phase 6: Realtime status
 - Customer order page, staff board and rider screen update instantly through Supabase Realtime (replaces the 30-second refresh).

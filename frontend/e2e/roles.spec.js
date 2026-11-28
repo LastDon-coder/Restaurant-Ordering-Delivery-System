@@ -66,6 +66,7 @@ test('admin money page: totals, by-day table and the rate editor', async ({ page
   await expect(page.getByRole('heading', { name: 'By restaurant and commission rates' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' }).first()).toBeDisabled(); // nothing changed yet
   await expect(page.getByRole('heading', { name: 'Balances and payouts' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Paystack split payments' })).toBeVisible();
 });
 
 test('the apply form checks its fields before sending anything', async ({ page }) => {

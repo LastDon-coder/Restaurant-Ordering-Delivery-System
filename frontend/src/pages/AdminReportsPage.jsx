@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminNav from '../components/AdminNav';
 import PayoutsPanel from '../components/PayoutsPanel';
 import ReportView from '../components/ReportView';
+import SettlementSection from '../components/SettlementSection';
 import { EmptyState, ErrorMessage, Loading } from '../components/StateMessage';
 import { getBalances, getByRestaurant, setCommission } from '../services/reportService';
 import { downloadCsv, toCsv } from '../utils/csv';
@@ -144,6 +145,7 @@ export default function AdminReportsPage() {
       <ReportView restaurantId={null} title="Platform sales by day" />
 
       <BalancesSection />
+      <SettlementSection />
 
       <div className="order-head">
         <h2>By restaurant and commission rates</h2>

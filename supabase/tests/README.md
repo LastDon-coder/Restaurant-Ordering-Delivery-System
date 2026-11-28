@@ -31,6 +31,10 @@ who may ask (admin: all; owner/manager: own restaurant; everyone else refused) a
 `payouts.test.sql` (about 40 checks) covers version 2 Phase 5d: only the admin records or voids payouts, the direction and size limits,
 settling a balance to exactly 0, voiding, the payout history, and that nobody writes the table directly.
 
+`split.test.sql` (about 40 checks) covers version 2 Phase 5e: connecting a bank account (server only), the split terms the database
+gives Paystack, rates frozen at the moment a payment starts, how split orders are booked and kept out of the balance, the fallbacks,
+and who can see the connection. (The Paystack calls themselves need Paystack TEST mode.)
+
 **Run any file:** paste the whole file into the Supabase SQL editor and run it. Everything happens inside one transaction that
 is rolled back at the end, so no data is kept. The SQL editor shows an "error" that starts with `TEST REPORT`: that
 message is the report. `FAILURES: 0` means everything passed; any line starting with `FAIL` tells you what broke.

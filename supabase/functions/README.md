@@ -3,6 +3,7 @@
 | Function | Auth | Purpose |
 |---|---|---|
 | `payments` | user JWT (`verify_jwt = true`) | `POST /payments/initialize` `{order_id}` · `POST /payments/verify` `{reference}` · `POST /payments/refund` `{order_id, reason}` (admin) |
+| `restaurant-bank` | admin JWT (checked in the function) | `POST /restaurant-bank/banks` · `/resolve` `{bank_code, account_number}` · `/connect` `{restaurant_id, bank_code, account_number}` creates the restaurant's Paystack subaccount for split payments |
 | `paystack-webhook` | Paystack HMAC signature (`verify_jwt = false`) | `charge.success`, `refund.processed`, `refund.failed`, `refund.pending` |
 
 ## Secrets (Supabase Dashboard > Edge Functions > Secrets, never in git)
@@ -63,3 +64,14 @@ Re-queue failed ones after fixing a problem: `update private.notification_outbox
 `https://restaurant-ordering-delivery.vercel.app,http://localhost:5173`. The first is the default. The payment return
 link and the invite link point back to whichever listed site made the request, so live and local both work.
 Do **not** set `PAYSTACK_CALLBACK_URL` unless you want to force one fixed return address (it overrides the above).
+
+## Split payments (Paystack subaccounts)
+
+An admin connects a restaurant's bank account from the **Money** page (Paystack split payments). `restaurant-bank` verifies the
+account name with Paystack, creates (or updates) the subaccount and stores only its code, the bank name, the account NAME and
+the last 4 digits. From then on `payments/initialize` sends `subaccount`, a flat `transaction_charge` (the platform's commission,
+computed by the database) and `bearer: "subaccount"` (the restaurant pays Paystack's fee). Paystack settles the restaurant's share
+to its bank itself, so those orders do not add to the balance the platform owes. If Paystack refuses a split (for example the fee
+is bigger than the restaurant's share on a very small order), the customer gets an ordinary payment and the order is booked as
+platform-collected. Test in Paystack TEST mode first, including a refund of a split order: Paystack's docs do not describe how a
+refund on a split transaction is funded, so check it in the dashboard before going live.
